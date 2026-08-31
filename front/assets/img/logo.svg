@@ -1,0 +1,29 @@
+<svg width="680" height="360" viewBox="0 0 680 360" xmlns="http://www.w3.org/2000/svg">
+  <title>Logo Mahdara</title>
+
+  <!-- Fond circulaire vert profond -->
+  <circle cx="340" cy="150" r="98" fill="#0B3D2E"/>
+  <circle cx="340" cy="150" r="98" fill="none" stroke="#D4A537" stroke-width="1.5"/>
+
+  <!-- Reliure centrale du livre -->
+  <path d="M340 108 L340 196" stroke="#0B3D2E" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Pages claires du livre ouvert -->
+  <path d="M340 116 C298 102 265 110 253 127 C253 168 298 182 340 172 Z" fill="#F5F1E6"/>
+  <path d="M340 116 C382 102 415 110 427 127 C427 168 382 182 340 172 Z" fill="#F5F1E6"/>
+
+  <!-- Lignes de texte sur les pages -->
+  <path d="M267 128 L332 128 M267 138 L332 138 M267 148 L332 148 M267 158 L322 158 M267 168 L312 168"
+        stroke="#0B3D2E" stroke-width="1.5" stroke-linecap="round" opacity="0.55"/>
+  <path d="M348 128 L413 128 M348 138 L413 138 M348 148 L413 148 M348 158 L403 158 M348 168 L393 168"
+        stroke="#0B3D2E" stroke-width="1.5" stroke-linecap="round" opacity="0.55"/>
+
+  <!-- Croissant doré -->
+  <g transform="translate(340,74)">
+    <path d="M0 -16 A16 16 0 1 0 11.2 -1.4 A12.5 12.5 0 1 1 0 -16 Z" fill="#D4A537"/>
+  </g>
+
+  <!-- Nom de la plateforme -->
+  <text x="340" y="285" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" font-weight="500" fill="#0B3D2E" letter-spacing="1">Mahdara</text>
+  <text x="340" y="311" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#5F5E5A" letter-spacing="2">القرآن الكريم · العلوم الشرعية</text>
+</svg>
