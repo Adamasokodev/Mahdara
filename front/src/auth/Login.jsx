@@ -12,19 +12,19 @@ import {
 } from "react-native";
 
 function Login() {
-  const [email, setEmail] = useState("");
+  const [telephone, setTelephone] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
   const handleLogin = () => {
     setError("");
 
-    if (!email.trim()) {
-      setError("L'email est requis");
+     if (!telephone.trim()) {
+      setError("Le téléphone est requis");
       return;
     }
-    if (!email.includes("@")) {
-      setError("Veuillez entrer un email valide");
+    if (!isValidPhone(telephone)) {
+      setError("Format téléphone invalide (ex: +222 46565458)");
       return;
     }
     if (!password) {
@@ -36,7 +36,7 @@ function Login() {
       return;
     }
 
-    Alert.alert("Succès", `Connexion de ${email}`);
+    Alert.alert("Succès", `Connexion de ${telephone}`);
     // TODO: Ajouter la logique d'authentification ici
   };
 
@@ -45,7 +45,7 @@ function Login() {
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.header}>
           <Image
-            source={require("../../assets/img/logo.svg")}
+            source={require("../../assets/img/logo_mahdara.jpg")}
             style={styles.logo}
           />
           <Text style={styles.title}>Connexion</Text>
@@ -61,13 +61,13 @@ function Login() {
           ) : null}
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>📧 Email</Text>
+            <Text style={styles.inputLabel}> Téléphone</Text>
             <TextInput
               style={styles.input}
-              placeholder="Votre email"
+              placeholder="Numéro de téléphone"
               placeholderTextColor="#999"
-              onChangeText={setEmail}
-              keyboardType="email-address"
+              onChangeText={setTelephone}
+              keyboardType="phone-pad"
               autoCapitalize="none"
               editable={true}
             />
