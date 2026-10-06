@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 
-function Register() {
+function Register({navigation}) {
   // États des champs
   const [nom, setNom] = useState("");
   const [prenom, setPrenom] = useState("");
@@ -332,7 +332,9 @@ function Register() {
           {/* Lien connexion */}
           <Text style={styles.footerText}>
             Vous avez déjà un compte ?{" "}
-            <Text style={styles.link}>Se connecter</Text>
+            <Text style={styles.link} onPress={() => navigation.navigate("Login")}>
+              Se connecter
+            </Text>
           </Text>
         </View>
       </ScrollView>

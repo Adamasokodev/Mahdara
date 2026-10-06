@@ -11,7 +11,7 @@ import {
   Image,
 } from "react-native";
 
-function Login() {
+function Login({navigation}) {
   const [telephone, setTelephone] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -90,7 +90,7 @@ function Login() {
           </TouchableOpacity>
 
           <Text style={styles.footerText}>
-            Pas encore de compte ? <Text style={styles.link}>S'inscrire</Text>
+            Pas encore de compte ? <Text style={styles.link} onPress={() => navigation.navigate("Register")}>S'inscrire</Text>
           </Text>
         </View>
       </ScrollView>
