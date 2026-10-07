@@ -7,19 +7,31 @@ import {
   ScrollView,
   StyleSheet,
   KeyboardAvoidingView,
-  Alert,
   Image,
+  Platform,
+  ActivityIndicator,
 } from "react-native";
+import { useAuth } from "../context/AuthContext";
 
-function Login({navigation}) {
+const API_URL =
+  Platform.OS === "android"
+    ? "http://10.0.2.2:8000/api"
+    : "http://127.0.0.1:8000/api";
+
+function Login({ navigation }) {
+  const { signIn } = useAuth();
   const [telephone, setTelephone] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
+  const isValidPhone = (phone) =>
+    /^(?:\+222)?[234]\d{7}$/.test(phone.replace(/\s/g, ""));
+
+  const handleLogin = async () => {
     setError("");
 
-     if (!telephone.trim()) {
+    if (!telephone.trim()) {
       setError("Le téléphone est requis");
       return;
     }
@@ -31,13 +43,54 @@ function Login({navigation}) {
       setError("Le mot de passe est requis");
       return;
     }
-    if (password.length < 6) {
-      setError("Le mot de passe doit contenir au moins 6 caractères");
-      return;
-    }
+    const normalizedTelephone = telephone.replace(/\s/g, "");
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          telephone: normalizedTelephone,
+          password,
+        }),
+      });
+      let result;
+      try {
+        result = await response.json();
+      } catch {
+        throw new Error("Le serveur a renvoyé une réponse illisible. Réessayez plus tard.");
+      }
 
-    Alert.alert("Succès", `Connexion de ${telephone}`);
-    // TODO: Ajouter la logique d'authentification ici
+      if (!result || typeof result !== "object" || Array.isArray(result)) {
+        throw new Error("Le serveur a renvoyé une réponse invalide. Réessayez plus tard.");
+      }
+
+      if (!response.ok) {
+        const validationErrors = Object.values(result.errors || {}).flat();
+        throw new Error(
+          validationErrors[0] ||
+            result.message ||
+            `La connexion a échoué (erreur ${response.status}).`,
+        );
+      }
+
+      if (!result?.token || !result?.user) {
+        throw new Error("La réponse du serveur est incomplète. Réessayez plus tard.");
+      }
+
+      await signIn(result.token);
+    } catch (err) {
+      setError(
+        err instanceof TypeError
+          ? "Impossible de joindre le serveur. Vérifiez que l’API est démarrée et accessible depuis cet appareil."
+          : err.message || "Une erreur est survenue lors de la connexion.",
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -66,10 +119,11 @@ function Login({navigation}) {
               style={styles.input}
               placeholder="Numéro de téléphone"
               placeholderTextColor="#999"
+              value={telephone}
               onChangeText={setTelephone}
               keyboardType="phone-pad"
               autoCapitalize="none"
-              editable={true}
+              editable={!loading}
             />
           </View>
 
@@ -79,18 +133,34 @@ function Login({navigation}) {
               style={styles.input}
               placeholder="Votre mot de passe"
               placeholderTextColor="#999"
+              value={password}
               onChangeText={setPassword}
               secureTextEntry={true}
               autoCapitalize="none"
+              editable={!loading}
             />
           </View>
 
-          <TouchableOpacity style={styles.button} onPress={handleLogin}>
-            <Text style={styles.buttonText}>Se connecter</Text>
+          <TouchableOpacity
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Se connecter</Text>
+            )}
           </TouchableOpacity>
 
           <Text style={styles.footerText}>
-            Pas encore de compte ? <Text style={styles.link} onPress={() => navigation.navigate("Register")}>S'inscrire</Text>
+            Pas encore de compte ?{" "}
+            <Text
+              style={styles.link}
+              onPress={() => navigation.navigate("Register")}
+            >
+              S'inscrire
+            </Text>
           </Text>
         </View>
       </ScrollView>
@@ -200,6 +270,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 5,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
   buttonText: {
     color: "#fff",

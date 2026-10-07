@@ -7,18 +7,25 @@ import {
   ScrollView,
   StyleSheet,
   KeyboardAvoidingView,
+  Platform,
   Alert,
   Image,
   ActivityIndicator,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 
-function Register({navigation}) {
+const API_URL =
+  Platform.OS === "android"
+    ? "http://10.0.2.2:8000/api"
+    : "http://127.0.0.1:8000/api";
+
+function Register({ navigation }) {
   // États des champs
   const [nom, setNom] = useState("");
   const [prenom, setPrenom] = useState("");
   const [email, setEmail] = useState("");
   const [telephone, setTelephone] = useState("");
-  const [nni, setNni] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
@@ -36,9 +43,9 @@ function Register({navigation}) {
     return emailRegex.test(email);
   };
 
-  // Validation téléphone (format: +213 ou 0, suivi de 9 chiffres)
+  // Le backend accepte huit chiffres, avec ou sans l'indicatif +222.
   const isValidPhone = (phone) => {
-    const phoneRegex = /^(?:\+213|0)[567]\d{8}$/;
+    const phoneRegex = /^(?:\+222)?[234]\d{7}$/;
     return phoneRegex.test(phone.replace(/\s/g, ""));
   };
 
@@ -46,8 +53,8 @@ function Register({navigation}) {
   const calculatePasswordStrength = (pwd) => {
     if (!pwd) return 0;
     let strength = 0;
-    if (pwd.length >= 6) strength++;
     if (pwd.length >= 8) strength++;
+    if (pwd.length >= 12) strength++;
     if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) strength++;
     if (/\d/.test(pwd)) strength++;
     if (/[!@#$%^&*]/.test(pwd)) strength++;
@@ -62,7 +69,6 @@ function Register({navigation}) {
   const handleRegister = async () => {
     setError("");
 
-    // Validations
     if (!nom.trim()) {
       setError("Le nom est requis");
       return;
@@ -72,28 +78,32 @@ function Register({navigation}) {
       return;
     }
 
-    if (!telephone.trim()) {
+    const normalizedTelephone = telephone.replace(/\s/g, "");
+    const normalizedEmail = email.trim().toLocaleLowerCase("fr");
+
+    if (!normalizedTelephone) {
       setError("Le téléphone est requis");
       return;
     }
-    if (!isValidPhone(telephone)) {
+    if (!isValidPhone(normalizedTelephone)) {
       setError("Format téléphone invalide (ex: +222 46565458)");
       return;
     }
-    if (!nni.trim()) {
-      setError("Le NNI est requis");
+    if (!normalizedEmail) {
+      setError("L'email est requis");
       return;
     }
-    if (nni.trim().length !== 9) {
-      setError("Le NNI doit contenir 9 caractères");
+    if (!isValidEmail(normalizedEmail)) {
+      setError("Format email invalide");
       return;
     }
+
     if (!password) {
       setError("Le mot de passe est requis");
       return;
     }
-    if (password.length < 6) {
-      setError("Le mot de passe doit contenir au moins 6 caractères");
+    if (password.length < 8) {
+      setError("Le mot de passe doit contenir au moins 8 caractères");
       return;
     }
     if (password !== confirmPassword) {
@@ -107,41 +117,89 @@ function Register({navigation}) {
 
     setLoading(true);
     try {
-      // TODO: Ajouter l'appel API d'authentification ici
-      // const response = await registerAPI({ nom, prenom, email, telephone, nni, password });
+      const response = await fetch(`${API_URL}/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          name: nom.trim(),
+          prenom: prenom.trim(),
+          email: normalizedEmail,
+          telephone: normalizedTelephone,
+          password,
+          password_confirmation: confirmPassword,
+        }),
+      });
 
-      // Simulation d'un délai réseau
-      setTimeout(() => {
-        Alert.alert(
-          "Succès",
-          `Inscription de ${nom} ${prenom} effectuée avec succès!`,
+      let result;
+      try {
+        result = await response.json();
+      } catch {
+        throw new Error(
+          "Le serveur a renvoyé une réponse illisible. Réessayez plus tard.",
         );
-        // Réinitialiser le formulaire
-        setNom("");
-        setPrenom("");
-        setTelephone("");
-        setNni("");
-        setPassword("");
-        setConfirmPassword("");
-        setAcceptTerms(false);
-        setLoading(false);
-      }, 1500);
+      }
+
+      if (!result || typeof result !== "object" || Array.isArray(result)) {
+        throw new Error(
+          "Le serveur a renvoyé une réponse invalide. Réessayez plus tard.",
+        );
+      }
+
+      if (!response.ok) {
+        const validationErrors = Object.values(result.errors || {}).flat();
+        const firstError =
+          validationErrors[0] ||
+          result.message ||
+          `La création du compte a échoué (erreur ${response.status}).`;
+        throw new Error(firstError);
+      }
+
+      Alert.alert(
+        "Compte créé",
+        "Votre compte Mahdara a été créé. Vous pouvez maintenant vous connecter.",
+        [
+          {
+            text: "Se connecter",
+            onPress: () => navigation.navigate("Login"),
+          },
+        ],
+      );
     } catch (err) {
-      setError(err.message || "Une erreur est survenue lors de l'inscription");
+      setError(
+        err instanceof TypeError
+          ? "Impossible de joindre le serveur. Vérifiez que l’API est démarrée et que son adresse est accessible depuis cet appareil."
+          : err.message || "Une erreur est survenue lors de l'inscription.",
+      );
+    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView style={styles.wrapper} behavior="padding">
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar style="dark" />
+      <KeyboardAvoidingView
+        style={styles.wrapper}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.header}>
           <Image
             source={require("../../assets/img/logo_mahdara.jpg")}
             style={styles.logo}
           />
+          <Text style={styles.eyebrow}>SAVOIR & TRANSMISSION</Text>
           <Text style={styles.title}>Inscription</Text>
-          <Text style={styles.subtitle}>Créez votre compte Mahdara</Text>
+          <Text style={styles.subtitle}>
+            Créez votre espace et commencez votre parcours avec Mahdara.
+          </Text>
         </View>
 
         <View style={styles.container}>
@@ -162,6 +220,8 @@ function Register({navigation}) {
               value={nom}
               onChangeText={setNom}
               autoCapitalize="words"
+              autoComplete="name"
+              returnKeyType="next"
               editable={!loading}
             />
           </View>
@@ -176,6 +236,8 @@ function Register({navigation}) {
               value={prenom}
               onChangeText={setPrenom}
               autoCapitalize="words"
+              autoComplete="given-name"
+              returnKeyType="next"
               editable={!loading}
             />
           </View>
@@ -185,26 +247,31 @@ function Register({navigation}) {
             <Text style={styles.inputLabel}>📱 Téléphone</Text>
             <TextInput
               style={styles.input}
-              placeholder="+222 46565458"
+              placeholder="46565458 ou +222 46565458"
               placeholderTextColor="#999"
               value={telephone}
               onChangeText={setTelephone}
               keyboardType="phone-pad"
+              autoComplete="tel"
+              returnKeyType="next"
               editable={!loading}
             />
           </View>
 
-          {/* NNI */}
+          {/* Email */}
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>🆔 NNI</Text>
+            <Text style={styles.inputLabel}>🆔 Email</Text>
             <TextInput
               style={styles.input}
-              placeholder="9 caractères"
+              placeholder="Votre email"
               placeholderTextColor="#999"
-              value={nni}
-              onChangeText={setNni}
-              autoCapitalize="characters"
-              maxLength={9}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              textContentType="emailAddress"
+              returnKeyType="next"
               editable={!loading}
             />
           </View>
@@ -221,9 +288,17 @@ function Register({navigation}) {
                 onChangeText={handlePasswordChange}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
+                autoComplete="new-password"
+                textContentType="newPassword"
                 editable={!loading}
               />
               <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={
+                  showPassword
+                    ? "Masquer le mot de passe"
+                    : "Afficher le mot de passe"
+                }
                 onPress={() => setShowPassword(!showPassword)}
                 disabled={loading}
               >
@@ -241,10 +316,10 @@ function Register({navigation}) {
                       width: `${(passwordStrength / 5) * 100}%`,
                       backgroundColor:
                         passwordStrength < 2
-                          ? "#d32f2f"
+                          ? "#C8493D"
                           : passwordStrength < 4
-                            ? "#ff9800"
-                            : "#4caf50",
+                            ? "#C89532"
+                            : "#47705C",
                     },
                   ]}
                 />
@@ -257,10 +332,10 @@ function Register({navigation}) {
                   {
                     color:
                       passwordStrength < 2
-                        ? "#d32f2f"
+                        ? "#C8493D"
                         : passwordStrength < 4
-                          ? "#ff9800"
-                          : "#4caf50",
+                          ? "#C89532"
+                          : "#47705C",
                   },
                 ]}
               >
@@ -285,9 +360,17 @@ function Register({navigation}) {
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!showConfirmPassword}
                 autoCapitalize="none"
+                autoComplete="new-password"
+                textContentType="newPassword"
                 editable={!loading}
               />
               <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={
+                  showConfirmPassword
+                    ? "Masquer la confirmation du mot de passe"
+                    : "Afficher la confirmation du mot de passe"
+                }
                 onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                 disabled={loading}
               >
@@ -300,6 +383,8 @@ function Register({navigation}) {
 
           {/* Conditions d'utilisation */}
           <TouchableOpacity
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: acceptTerms }}
             style={styles.termsContainer}
             onPress={() => setAcceptTerms(!acceptTerms)}
             disabled={loading}
@@ -310,9 +395,8 @@ function Register({navigation}) {
               <Text style={styles.checkboxText}>{acceptTerms ? "✓" : ""}</Text>
             </View>
             <Text style={styles.termsText}>
-              J'accepte les{" "}
-              <Text style={styles.link}>conditions d'utilisation</Text> et la{" "}
-              <Text style={styles.link}>politique de confidentialité</Text>
+              J’accepte les conditions d’utilisation et la politique de
+              confidentialité.
             </Text>
           </TouchableOpacity>
 
@@ -332,88 +416,94 @@ function Register({navigation}) {
           {/* Lien connexion */}
           <Text style={styles.footerText}>
             Vous avez déjà un compte ?{" "}
-            <Text style={styles.link} onPress={() => navigation.navigate("Login")}>
+            <Text
+              style={styles.link}
+              onPress={() => navigation.navigate("Login")}
+              accessibilityRole="link"
+            >
               Se connecter
             </Text>
           </Text>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#F8F7F1",
+  },
   wrapper: {
     flex: 1,
-    paddingTop: 40,
-    marginBottom: 40,
   },
   scrollContainer: {
     flexGrow: 1,
     justifyContent: "center",
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
   },
   header: {
     alignItems: "center",
-    marginBottom: 40,
+    marginBottom: 25,
   },
   logo: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 3,
+    width: 76,
+    height: 76,
+    borderRadius: 24,
+    marginBottom: 15,
+    backgroundColor: "#FFFFFF",
   },
-  headerIcon: {
-    fontSize: 50,
-    marginBottom: 10,
+  eyebrow: {
+    color: "#B28B2E",
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 1.5,
+    marginBottom: 7,
   },
   title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "#1a1a1a",
-    marginBottom: 8,
+    fontSize: 30,
+    fontWeight: "800",
+    color: "#183D32",
+    marginBottom: 6,
     textAlign: "center",
   },
   subtitle: {
     fontSize: 14,
-    color: "#666",
+    color: "#717A73",
+    lineHeight: 20,
     textAlign: "center",
+    maxWidth: 310,
   },
   container: {
     width: "100%",
     maxWidth: 400,
     alignSelf: "center",
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
+    backgroundColor: "#FFFFFF",
+    borderColor: "#EEECE4",
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 20,
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   inputLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 8,
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#315243",
+    marginBottom: 7,
   },
   errorContainer: {
     flexDirection: "row",
-    backgroundColor: "#ffe0e0",
-    borderLeftWidth: 4,
-    borderLeftColor: "#d32f2f",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 20,
+    backgroundColor: "#FFF0EE",
+    borderLeftWidth: 3,
+    borderLeftColor: "#C8493D",
+    borderRadius: 10,
+    padding: 11,
+    marginBottom: 17,
     alignItems: "center",
   },
   errorIcon: {
@@ -421,42 +511,47 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   errorText: {
-    color: "#d32f2f",
-    fontSize: 13,
-    fontWeight: "500",
+    color: "#A6352C",
+    fontSize: 12,
+    fontWeight: "600",
     flex: 1,
   },
   input: {
-    borderWidth: 1.5,
-    borderColor: "#e0e0e0",
-    borderRadius: 10,
-    padding: 14,
-    fontSize: 15,
-    backgroundColor: "#f8f9fa",
-    color: "#333",
+    minHeight: 48,
+    borderWidth: 1,
+    borderColor: "#E8E5DA",
+    borderRadius: 11,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+    fontSize: 14,
+    backgroundColor: "#FBFAF6",
+    color: "#183D32",
   },
   passwordContainer: {
+    minHeight: 48,
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: "#e0e0e0",
-    borderRadius: 10,
-    backgroundColor: "#f8f9fa",
-    paddingRight: 10,
+    borderWidth: 1,
+    borderColor: "#E8E5DA",
+    borderRadius: 11,
+    backgroundColor: "#FBFAF6",
+    paddingRight: 8,
   },
   passwordInput: {
     flex: 1,
-    padding: 14,
-    fontSize: 15,
-    color: "#333",
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+    fontSize: 14,
+    color: "#183D32",
   },
   togglePassword: {
-    fontSize: 18,
-    paddingHorizontal: 8,
+    fontSize: 17,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
   },
   strengthContainer: {
     height: 6,
-    backgroundColor: "#e0e0e0",
+    backgroundColor: "#E8E5DA",
     borderRadius: 3,
     marginTop: 8,
     overflow: "hidden",
@@ -473,22 +568,22 @@ const styles = StyleSheet.create({
   termsContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 17,
     paddingHorizontal: 4,
   },
   checkbox: {
     width: 20,
     height: 20,
     borderWidth: 2,
-    borderColor: "#0e8a56",
+    borderColor: "#103F32",
     borderRadius: 4,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     marginRight: 8,
   },
   checkboxChecked: {
-    backgroundColor: "#0e8a56",
+    backgroundColor: "#103F32",
   },
   checkboxText: {
     color: "#fff",
@@ -501,12 +596,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   button: {
-    backgroundColor: "#0e8a56",
+    backgroundColor: "#103F32",
     padding: 16,
     borderRadius: 10,
     alignItems: "center",
     marginTop: 10,
-    shadowColor: "#0e8a56",
+    shadowColor: "#103F32",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -514,22 +609,22 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.7,
-    backgroundColor: "#0d6d42",
+    backgroundColor: "#315A43",
   },
   buttonText: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
     letterSpacing: 0.5,
   },
   footerText: {
     fontSize: 13,
-    color: "#666",
+    color: "#717A73",
     textAlign: "center",
     marginTop: 20,
   },
   link: {
-    color: "#0e8a56",
+    color: "#47705C",
     fontWeight: "600",
   },
 });

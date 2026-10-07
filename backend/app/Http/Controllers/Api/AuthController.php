@@ -14,6 +14,7 @@ class AuthController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'prenom' => 'required|string|max:255',
             'email' => 'required|unique:users,email',
             'telephone' => ['required', 'unique:users,telephone', 'regex:/^(\+222)?[234][0-9]{7}$/'],
             'password' => 'required|string|min:8|confirmed'
@@ -21,6 +22,7 @@ class AuthController extends Controller
 
         $user = User::create([
             'name' => $request->name,
+            'prenom' => $request->prenom,
             'email' => $request->email,
             'telephone' => $request->telephone,
             'password' => Hash::make($request->password),
@@ -34,16 +36,16 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        $request->validate([
-            'email' => 'required|email',
+        $credentials = $request->validate([
+            'telephone' => ['required', 'string', 'regex:/^(\+222)?[234][0-9]{7}$/'],
             'password' => 'required|string'
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::where('telephone', $credentials['telephone'])->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['Indentification incorrects.']
+                'telephone' => ['Identifiants incorrects.']
             ]);
         }
 
