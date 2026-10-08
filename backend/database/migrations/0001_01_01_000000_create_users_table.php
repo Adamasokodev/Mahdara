@@ -17,7 +17,8 @@ return new class extends Migration
             $table->string('prenom');
             $table->string('email')->unique();
             $table->string('telephone')->nullable();
-            $table->string('role')->default('etudiant');
+            $table->enum('role', ['admin', 'cheikh', 'student'])->default('student')->index();
+            $table->enum('status', ['pending', 'active', 'rejected', 'suspended'])->default('pending')->index();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();

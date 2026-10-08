@@ -26,7 +26,8 @@ class AuthController extends Controller
             'email' => $request->email,
             'telephone' => $request->telephone,
             'password' => Hash::make($request->password),
-            'role' => 'etudiant',
+            'role' => 'student',
+            'status' => 'pending',
         ]);
 
         $token = $user->createToken('mobile')->plainTextToken;

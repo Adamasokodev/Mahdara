@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\CheikhController;
 use App\Http\Controllers\Api\CoursController;
 use App\Http\Controllers\Api\MahdaraController;
@@ -10,6 +11,12 @@ use Illuminate\Support\Facades\Route;
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
+
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(function () {
+    Route::get('/cheikhs/pending', [AdminController::class, 'pendingCheikhs']);
+    Route::post('/cheikhs/{user}/approve', [AdminController::class, 'approve']);
+    Route::post('/cheikhs/{user}/reject', [AdminController::class, 'reject']);
+});
 
 Route::post('/register', [AuthController::class, 'register'])->name('register');
 Route::post('/login', [AuthController::class, 'login'])->name('login');
