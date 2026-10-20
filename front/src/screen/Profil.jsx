@@ -15,6 +15,7 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
+import colors from "../theme/colors";
 
 const learningTools = [
   {
@@ -416,7 +417,7 @@ function Profil() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#F8F7F1",
+    backgroundColor: colors.neutral50,
   },
   scrollContent: {
     paddingHorizontal: 22,
@@ -480,7 +481,7 @@ const styles = StyleSheet.create({
     marginBottom: 7,
   },
   title: {
-    color: "#183D32",
+    color: colors.neutral900,
     fontSize: 30,
     fontWeight: "800",
     letterSpacing: -0.6,
@@ -1013,7 +1014,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 20,
     borderRadius: 12,
-    backgroundColor: "#103F32",
+    backgroundColor: colors.green600,
   },
   saveButtonText: {
     color: "#FFFFFF",

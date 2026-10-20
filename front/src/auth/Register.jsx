@@ -14,11 +14,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-
-const API_URL =
-  Platform.OS === "android"
-    ? "http://10.0.2.2:8000/api"
-    : "http://127.0.0.1:8000/api";
+import { API_URL } from "../config/api";
+import colors from "../theme/colors";
 
 function Register({ navigation }) {
   // États des champs
@@ -185,136 +182,152 @@ function Register({ navigation }) {
         style={styles.wrapper}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-      <ScrollView
-        contentContainerStyle={styles.scrollContainer}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.header}>
-          <Image
-            source={require("../../assets/img/logo_mahdara.jpg")}
-            style={styles.logo}
-          />
-          <Text style={styles.eyebrow}>SAVOIR & TRANSMISSION</Text>
-          <Text style={styles.title}>Inscription</Text>
-          <Text style={styles.subtitle}>
-            Créez votre espace et commencez votre parcours avec Mahdara.
-          </Text>
-        </View>
-
-        <View style={styles.container}>
-          {error ? (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorIcon}>⚠️</Text>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          ) : null}
-
-          {/* Nom */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>👤 Nom</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Votre nom de famille"
-              placeholderTextColor="#999"
-              value={nom}
-              onChangeText={setNom}
-              autoCapitalize="words"
-              autoComplete="name"
-              returnKeyType="next"
-              editable={!loading}
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.header}>
+            <Image
+              source={require("../../assets/img/logo_mahdara.jpg")}
+              style={styles.logo}
             />
+            <Text style={styles.eyebrow}>SAVOIR & TRANSMISSION</Text>
+            <Text style={styles.title}>Inscription</Text>
+            <Text style={styles.subtitle}>
+              Créez votre espace et commencez votre parcours avec Mahdara.
+            </Text>
           </View>
 
-          {/* Prénom */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>👤 Prénom</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Votre prénom"
-              placeholderTextColor="#999"
-              value={prenom}
-              onChangeText={setPrenom}
-              autoCapitalize="words"
-              autoComplete="given-name"
-              returnKeyType="next"
-              editable={!loading}
-            />
-          </View>
+          <View style={styles.container}>
+            {error ? (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorIcon}>⚠️</Text>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
 
-          {/* Téléphone */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>📱 Téléphone</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="46565458 ou +222 46565458"
-              placeholderTextColor="#999"
-              value={telephone}
-              onChangeText={setTelephone}
-              keyboardType="phone-pad"
-              autoComplete="tel"
-              returnKeyType="next"
-              editable={!loading}
-            />
-          </View>
-
-          {/* Email */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>🆔 Email</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Votre email"
-              placeholderTextColor="#999"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              textContentType="emailAddress"
-              returnKeyType="next"
-              editable={!loading}
-            />
-          </View>
-
-          {/* Mot de passe */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>🔑 Mot de passe</Text>
-            <View style={styles.passwordContainer}>
+            {/* Nom */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>👤 Nom</Text>
               <TextInput
-                style={styles.passwordInput}
-                placeholder="Entrez un mot de passe sécurisé"
+                style={styles.input}
+                placeholder="Votre nom de famille"
                 placeholderTextColor="#999"
-                value={password}
-                onChangeText={handlePasswordChange}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoComplete="new-password"
-                textContentType="newPassword"
+                value={nom}
+                onChangeText={setNom}
+                autoCapitalize="words"
+                autoComplete="name"
+                returnKeyType="next"
                 editable={!loading}
               />
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityLabel={
-                  showPassword
-                    ? "Masquer le mot de passe"
-                    : "Afficher le mot de passe"
-                }
-                onPress={() => setShowPassword(!showPassword)}
-                disabled={loading}
-              >
-                <Text style={styles.togglePassword}>
-                  {showPassword ? "👁️" : "🚫"}
-                </Text>
-              </TouchableOpacity>
             </View>
-            {password ? (
-              <View style={styles.strengthContainer}>
-                <View
+
+            {/* Prénom */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>👤 Prénom</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Votre prénom"
+                placeholderTextColor="#999"
+                value={prenom}
+                onChangeText={setPrenom}
+                autoCapitalize="words"
+                autoComplete="given-name"
+                returnKeyType="next"
+                editable={!loading}
+              />
+            </View>
+
+            {/* Téléphone */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>📱 Téléphone</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="46565458 ou +222 46565458"
+                placeholderTextColor="#999"
+                value={telephone}
+                onChangeText={setTelephone}
+                keyboardType="phone-pad"
+                autoComplete="tel"
+                returnKeyType="next"
+                editable={!loading}
+              />
+            </View>
+
+            {/* Email */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>🆔 Email</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Votre email"
+                placeholderTextColor="#999"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                textContentType="emailAddress"
+                returnKeyType="next"
+                editable={!loading}
+              />
+            </View>
+
+            {/* Mot de passe */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>🔑 Mot de passe</Text>
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Entrez un mot de passe sécurisé"
+                  placeholderTextColor="#999"
+                  value={password}
+                  onChangeText={handlePasswordChange}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoComplete="new-password"
+                  textContentType="newPassword"
+                  editable={!loading}
+                />
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    showPassword
+                      ? "Masquer le mot de passe"
+                      : "Afficher le mot de passe"
+                  }
+                  onPress={() => setShowPassword(!showPassword)}
+                  disabled={loading}
+                >
+                  <Text style={styles.togglePassword}>
+                    {showPassword ? "👁️" : "🚫"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              {password ? (
+                <View style={styles.strengthContainer}>
+                  <View
+                    style={[
+                      styles.strengthBar,
+                      {
+                        width: `${(passwordStrength / 5) * 100}%`,
+                        backgroundColor:
+                          passwordStrength < 2
+                            ? "#C8493D"
+                            : passwordStrength < 4
+                              ? "#C89532"
+                              : "#47705C",
+                      },
+                    ]}
+                  />
+                </View>
+              ) : null}
+              {password ? (
+                <Text
                   style={[
-                    styles.strengthBar,
+                    styles.strengthText,
                     {
-                      width: `${(passwordStrength / 5) * 100}%`,
-                      backgroundColor:
+                      color:
                         passwordStrength < 2
                           ? "#C8493D"
                           : passwordStrength < 4
@@ -322,110 +335,98 @@ function Register({ navigation }) {
                             : "#47705C",
                     },
                   ]}
-                />
-              </View>
-            ) : null}
-            {password ? (
-              <Text
-                style={[
-                  styles.strengthText,
-                  {
-                    color:
-                      passwordStrength < 2
-                        ? "#C8493D"
-                        : passwordStrength < 4
-                          ? "#C89532"
-                          : "#47705C",
-                  },
-                ]}
-              >
-                {passwordStrength < 2
-                  ? "Faible"
-                  : passwordStrength < 4
-                    ? "Moyen"
-                    : "Fort"}
-              </Text>
-            ) : null}
-          </View>
-
-          {/* Confirmer le mot de passe */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>🔑 Confirmer le mot de passe</Text>
-            <View style={styles.passwordContainer}>
-              <TextInput
-                style={styles.passwordInput}
-                placeholder="Confirmez votre mot de passe"
-                placeholderTextColor="#999"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry={!showConfirmPassword}
-                autoCapitalize="none"
-                autoComplete="new-password"
-                textContentType="newPassword"
-                editable={!loading}
-              />
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityLabel={
-                  showConfirmPassword
-                    ? "Masquer la confirmation du mot de passe"
-                    : "Afficher la confirmation du mot de passe"
-                }
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                disabled={loading}
-              >
-                <Text style={styles.togglePassword}>
-                  {showConfirmPassword ? "👁️" : "🚫"}
+                >
+                  {passwordStrength < 2
+                    ? "Faible"
+                    : passwordStrength < 4
+                      ? "Moyen"
+                      : "Fort"}
                 </Text>
-              </TouchableOpacity>
+              ) : null}
             </View>
+
+            {/* Confirmer le mot de passe */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>
+                🔑 Confirmer le mot de passe
+              </Text>
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Confirmez votre mot de passe"
+                  placeholderTextColor="#999"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry={!showConfirmPassword}
+                  autoCapitalize="none"
+                  autoComplete="new-password"
+                  textContentType="newPassword"
+                  editable={!loading}
+                />
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    showConfirmPassword
+                      ? "Masquer la confirmation du mot de passe"
+                      : "Afficher la confirmation du mot de passe"
+                  }
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  disabled={loading}
+                >
+                  <Text style={styles.togglePassword}>
+                    {showConfirmPassword ? "👁️" : "🚫"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Conditions d'utilisation */}
+            <TouchableOpacity
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: acceptTerms }}
+              style={styles.termsContainer}
+              onPress={() => setAcceptTerms(!acceptTerms)}
+              disabled={loading}
+            >
+              <View
+                style={[styles.checkbox, acceptTerms && styles.checkboxChecked]}
+              >
+                <Text style={styles.checkboxText}>
+                  {acceptTerms ? "✓" : ""}
+                </Text>
+              </View>
+              <Text style={styles.termsText}>
+                J’accepte les conditions d’utilisation et la politique de
+                confidentialité.
+              </Text>
+            </TouchableOpacity>
+
+            {/* Bouton S'inscrire */}
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleRegister}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>S'inscrire</Text>
+              )}
+            </TouchableOpacity>
+
+            {/* Lien connexion */}
+            <Text style={styles.footerText}>
+              Vous avez déjà un compte ?{" "}
+              <Text
+                style={styles.link}
+                onPress={() => navigation.navigate("Login")}
+                accessibilityRole="link"
+              >
+                Se connecter
+              </Text>
+            </Text>
           </View>
-
-          {/* Conditions d'utilisation */}
-          <TouchableOpacity
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: acceptTerms }}
-            style={styles.termsContainer}
-            onPress={() => setAcceptTerms(!acceptTerms)}
-            disabled={loading}
-          >
-            <View
-              style={[styles.checkbox, acceptTerms && styles.checkboxChecked]}
-            >
-              <Text style={styles.checkboxText}>{acceptTerms ? "✓" : ""}</Text>
-            </View>
-            <Text style={styles.termsText}>
-              J’accepte les conditions d’utilisation et la politique de
-              confidentialité.
-            </Text>
-          </TouchableOpacity>
-
-          {/* Bouton S'inscrire */}
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleRegister}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>S'inscrire</Text>
-            )}
-          </TouchableOpacity>
-
-          {/* Lien connexion */}
-          <Text style={styles.footerText}>
-            Vous avez déjà un compte ?{" "}
-            <Text
-              style={styles.link}
-              onPress={() => navigation.navigate("Login")}
-              accessibilityRole="link"
-            >
-              Se connecter
-            </Text>
-          </Text>
-        </View>
-      </ScrollView>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -434,7 +435,7 @@ function Register({ navigation }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#F8F7F1",
+    backgroundColor: colors.neutral50,
   },
   wrapper: {
     flex: 1,
@@ -466,7 +467,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 30,
     fontWeight: "800",
-    color: "#183D32",
+    color: colors.neutral900,
     marginBottom: 6,
     textAlign: "center",
   },
@@ -575,7 +576,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderWidth: 2,
-    borderColor: "#103F32",
+    borderColor: colors.green600,
     borderRadius: 4,
     justifyContent: "center",
     alignItems: "center",
@@ -583,7 +584,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   checkboxChecked: {
-    backgroundColor: "#103F32",
+    backgroundColor: colors.green600,
   },
   checkboxText: {
     color: "#fff",
@@ -596,7 +597,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   button: {
-    backgroundColor: "#103F32",
+    backgroundColor: colors.green600,
     padding: 16,
     borderRadius: 10,
     alignItems: "center",
@@ -624,7 +625,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   link: {
-    color: "#47705C",
+    color: colors.green600,
     fontWeight: "600",
   },
 });

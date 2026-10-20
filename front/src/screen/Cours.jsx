@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
+import colors from "../theme/colors";
 
 const categories = ["Tout", "Le Coran", "Langue arabe", "Sciences islamiques"];
 
@@ -436,7 +437,7 @@ function Cours() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#F8F7F1",
+    backgroundColor: colors.neutral50,
   },
   scrollContent: {
     paddingHorizontal: 22,
@@ -500,7 +501,7 @@ const styles = StyleSheet.create({
     marginBottom: 7,
   },
   title: {
-    color: "#183D32",
+    color: colors.neutral900,
     fontSize: 30,
     fontWeight: "800",
     letterSpacing: -0.6,
@@ -562,15 +563,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     marginTop: 11,
     borderRadius: 9,
-    backgroundColor: "#E4C46D",
+    backgroundColor: colors.green600,
   },
   featuredButtonText: {
-    color: "#173D30",
+    color: "#FFFFFF",
     fontSize: 10,
     fontWeight: "800",
   },
   featuredArrow: {
-    color: "#173D30",
+    color: "#FFFFFF",
     fontSize: 15,
     fontWeight: "700",
     marginLeft: 8,
@@ -639,8 +640,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   favoritesFilterActive: {
-    borderColor: "#103F32",
-    backgroundColor: "#103F32",
+    borderColor: colors.green600,
+    backgroundColor: colors.green600,
   },
   favoritesFilterText: {
     color: "#6F786F",
@@ -664,8 +665,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   categoryChipSelected: {
-    borderColor: "#103F32",
-    backgroundColor: "#103F32",
+    borderColor: colors.green600,
+    backgroundColor: colors.green600,
   },
   categoryText: {
     color: "#69736B",
@@ -778,13 +779,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     marginTop: 11,
     borderRadius: 9,
-    backgroundColor: "#F3F5F0",
+    backgroundColor: colors.green600,
   },
   buttonPressed: {
     opacity: 0.75,
   },
   detailsButtonText: {
-    color: "#103F32",
+    color: "#FFFFFF",
     fontSize: 11,
     fontWeight: "700",
   },

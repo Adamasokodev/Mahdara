@@ -20,6 +20,29 @@ class AdminPanelAccessTest extends TestCase
         $this->get('/admin/login')->assertOk();
     }
 
+    public function test_homepage_login_link_points_to_the_filament_login_page(): void
+    {
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('href="'.route('filament.admin.auth.login').'"', false);
+    }
+
+    public function test_homepage_does_not_link_to_the_api_registration_endpoint(): void
+    {
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('href="'.route('register').'"', false)
+            ->assertDontSee('api/register');
+    }
+
+    public function test_registration_page_is_available_and_posts_to_the_web_route(): void
+    {
+        $this->get(route('register'))
+            ->assertOk()
+            ->assertSee('action="'.route('register.store').'"', false)
+            ->assertSee('name="password_confirmation"', false);
+    }
+
     public function test_only_active_admins_can_access_the_admin_panel(): void
     {
         $panel = Filament::getPanel('admin');

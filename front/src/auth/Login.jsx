@@ -12,11 +12,8 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useAuth } from "../context/AuthContext";
-
-const API_URL =
-  Platform.OS === "android"
-    ? "http://10.0.2.2:8000/api"
-    : "http://127.0.0.1:8000/api";
+import { API_URL } from "../config/api";
+import colors from "../theme/colors";
 
 function Login({ navigation }) {
   const { signIn } = useAuth();
@@ -61,11 +58,15 @@ function Login({ navigation }) {
       try {
         result = await response.json();
       } catch {
-        throw new Error("Le serveur a renvoyé une réponse illisible. Réessayez plus tard.");
+        throw new Error(
+          "Le serveur a renvoyé une réponse illisible. Réessayez plus tard.",
+        );
       }
 
       if (!result || typeof result !== "object" || Array.isArray(result)) {
-        throw new Error("Le serveur a renvoyé une réponse invalide. Réessayez plus tard.");
+        throw new Error(
+          "Le serveur a renvoyé une réponse invalide. Réessayez plus tard.",
+        );
       }
 
       if (!response.ok) {
@@ -78,7 +79,9 @@ function Login({ navigation }) {
       }
 
       if (!result?.token || !result?.user) {
-        throw new Error("La réponse du serveur est incomplète. Réessayez plus tard.");
+        throw new Error(
+          "La réponse du serveur est incomplète. Réessayez plus tard.",
+        );
       }
 
       await signIn(result.token);
@@ -171,6 +174,7 @@ function Login({ navigation }) {
 const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
+    backgroundColor: colors.neutral50,
   },
   scrollContainer: {
     flexGrow: 1,
@@ -199,7 +203,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: "bold",
-    color: "#1a1a1a",
+    color: colors.neutral900,
     marginBottom: 8,
     textAlign: "center",
   },
@@ -260,12 +264,12 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   button: {
-    backgroundColor: "#0e8a56",
+    backgroundColor: colors.green600,
     padding: 16,
     borderRadius: 10,
     alignItems: "center",
     marginTop: 10,
-    shadowColor: "#0e8a56",
+    shadowColor: colors.green600,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -287,7 +291,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   link: {
-    color: "#0e8a56",
+    color: colors.green600,
     fontWeight: "600",
   },
 });

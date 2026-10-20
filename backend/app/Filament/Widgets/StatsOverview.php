@@ -11,7 +11,7 @@ class StatsOverview extends StatsOverviewWidget
     protected function getStats(): array
     {
         return [
-            Stat::make('Étudiants', User::where('role', 'student')->count())
+            Stat::make('Étudiants', User::whereIn('role', ['student', 'etudiant'])->count())
                 ->description('Comptes actifs et inscrits')
                 ->icon('heroicon-o-users')
                 ->color('success'),

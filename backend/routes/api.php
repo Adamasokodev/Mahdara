@@ -18,8 +18,8 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::post('/cheikhs/{user}/reject', [AdminController::class, 'reject']);
 });
 
-Route::post('/register', [AuthController::class, 'register'])->name('register');
-Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::post('/register', [AuthController::class, 'register'])->name('api.register');
+Route::post('/login', [AuthController::class, 'login'])->name('api.login');
 Route::get('/me', [AuthController::class, 'me'])->name('me');
 
 // Route::get('/mahdara', [CheikhController::class, 'index'])->name('mahdara.index');
