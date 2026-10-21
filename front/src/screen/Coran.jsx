@@ -174,26 +174,31 @@ function Coran() {
     try {
       await setAudioModeAsync({ playsInSilentMode: true });
       if (!screenActive.current) return;
-      if (!canPlaySurah) {
+      const serverUrl = selectedMoshaf?.server?.trim();
+      if (!canPlaySurah || !serverUrl) {
         setAudioError("Cette sourate n’est pas disponible pour cette récitation.");
         return;
       }
 
-      if (loadedAudioKey !== audioKey) {
-        const server = selectedMoshaf.server.endsWith("/")
-          ? selectedMoshaf.server
-          : `${selectedMoshaf.server}/`;
+      // A failed stream must be replaced on retry; otherwise play() reuses the
+      // broken source and the user cannot recover by pressing the button again.
+      if (loadedAudioKey !== audioKey || playback.error) {
+        const server = serverUrl.endsWith("/") ? serverUrl : `${serverUrl}/`;
         const surahNumber = String(selectedSurah).padStart(3, "0");
         player.replace(`${server}${surahNumber}.mp3`);
         setLoadedAudioKey(audioKey);
       }
-      player.playbackRate = PLAYBACK_RATES[playbackRateIndex];
+      player.setPlaybackRate(PLAYBACK_RATES[playbackRateIndex]);
       player.play();
       setMode("écouter");
       setAudioError("");
-    } catch {
+    } catch (playError) {
       if (screenActive.current) {
-        setAudioError("La récitation n’a pas pu démarrer. Vérifiez votre connexion puis réessayez.");
+        setAudioError(
+          playError instanceof Error && playError.message
+            ? `Impossible de démarrer la récitation : ${playError.message}`
+            : "La récitation n’a pas pu démarrer. Vérifiez votre connexion puis réessayez."
+        );
       }
     }
   };
@@ -415,7 +420,7 @@ function Coran() {
           ) : null}
           {audioError || playback.error ? (
             <Text style={styles.errorText}>
-              {audioError || "La lecture audio a rencontré un problème. Vérifiez votre connexion."}
+              {audioError || `La lecture audio a échoué : ${playback.error}`}
             </Text>
           ) : null}
         </View>
