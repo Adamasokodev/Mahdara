@@ -8,13 +8,43 @@ class Cours extends Model
 {
     protected $fillable = [
         'titre',
-        'matiere',
+        'matiere_id',
         'cheikh_id',
         'mahdara_id',
-        'fichier_url',
-        'duree_minutes',
-        'niveau'
+        'description',
+        'type',
+        'langue',
+        'fichier_path',
+        'duree_secondes',
+        'taille_octets',
+        'image_path',
+        'statut',
+        'nombre_ecoutes',
+        'telechargements',
+        'publie_le',
+        'niveau',
+        'livre',
+        'contenu',
+        'type_media',
+        'extrait_url',
+        'extrait_path',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'duree_secondes' => 'integer',
+            'taille_octets' => 'integer',
+            'nombre_ecoutes' => 'integer',
+            'telechargements' => 'integer',
+            'publie_le' => 'datetime',
+        ];
+    }
+
+    public function matiere()
+    {
+        return $this->belongsTo(Matiere::class);
+    }
 
     public function cheikh()
     {

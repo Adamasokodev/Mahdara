@@ -29,12 +29,12 @@ class RegisteredUserController extends Controller
         User::create([
             ...$validated,
             'password' => Hash::make($validated['password']),
-            'role' => 'student',
-            'status' => 'pending',
+            'role' => User::ROLE_STUDENT,
+            'status' => 'active',
         ]);
 
         return redirect()
             ->route('register')
-            ->with('status', 'Votre inscription a été envoyée. Votre compte sera activé après validation par un administrateur.');
+            ->with('status', 'Votre compte étudiant est actif. Vous pouvez vous connecter.');
     }
 }

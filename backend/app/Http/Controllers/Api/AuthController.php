@@ -17,7 +17,7 @@ class AuthController extends Controller
             'prenom' => 'required|string|max:255',
             'email' => 'required|unique:users,email',
             'telephone' => ['required', 'unique:users,telephone', 'regex:/^(\+222)?[234][0-9]{7}$/'],
-            'password' => 'required|string|min:8|confirmed'
+            'password' => 'required|string|min:8|confirmed',
         ]);
 
         $user = User::create([
@@ -26,8 +26,8 @@ class AuthController extends Controller
             'email' => $request->email,
             'telephone' => $request->telephone,
             'password' => Hash::make($request->password),
-            'role' => 'student',
-            'status' => 'pending',
+            'role' => User::ROLE_STUDENT,
+            'status' => 'active',
         ]);
 
         $token = $user->createToken('mobile')->plainTextToken;
@@ -39,14 +39,20 @@ class AuthController extends Controller
     {
         $credentials = $request->validate([
             'telephone' => ['required', 'string', 'regex:/^(\+222)?[234][0-9]{7}$/'],
-            'password' => 'required|string'
+            'password' => 'required|string',
         ]);
 
         $user = User::where('telephone', $credentials['telephone'])->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
-                'telephone' => ['Identifiants incorrects.']
+                'telephone' => ['Identifiants incorrects.'],
+            ]);
+        }
+
+        if ($user->status !== 'active') {
+            throw ValidationException::withMessages([
+                'telephone' => ['Votre compte n’est pas actif. Contactez un administrateur.'],
             ]);
         }
 

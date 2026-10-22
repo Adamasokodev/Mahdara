@@ -22,7 +22,13 @@ class CheikhResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
-    protected static ?string $recordTitleAttribute = 'Cheikh';
+    protected static ?string $recordTitleAttribute = 'id';
+
+    protected static ?string $modelLabel = 'cheikh';
+
+    protected static ?string $pluralModelLabel = 'cheikhs';
+
+    protected static ?string $navigationLabel = 'Cheikhs';
 
     public static function form(Schema $schema): Schema
     {

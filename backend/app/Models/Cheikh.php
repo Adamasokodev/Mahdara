@@ -3,10 +3,26 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Cheikh extends Model
 {
-    protected $fillable = ['user_id', 'mahdara_id', 'specialite', 'bio'];
+    use SoftDeletes;
+
+    protected $fillable = [
+        'user_id',
+        'mahdara_id',
+        'photo_path',
+        'bio',
+        'verifier',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'verifier' => 'boolean',
+        ];
+    }
 
     public function user()
     {
@@ -21,5 +37,10 @@ class Cheikh extends Model
     public function cours()
     {
         return $this->hasMany(Cours::class);
+    }
+
+    public function matieres()
+    {
+        return $this->belongsToMany(Matiere::class)->withTimestamps();
     }
 }

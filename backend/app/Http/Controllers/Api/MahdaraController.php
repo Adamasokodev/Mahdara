@@ -8,58 +8,72 @@ use Illuminate\Http\Request;
 
 class MahdaraController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        $mahdaras = Mahdara::select('id', 'nom', 'wilaya', 'localisation', 'description')->get();
-        return response()->json($mahdaras);
+        $mahadaras = Mahdara::query()
+            ->where('actif', true)
+            ->select('id', 'nom', 'wilaya', 'localisation', 'description', 'actif')
+            ->withCount(['cheikhs', 'cours'])
+            ->orderBy('nom')
+            ->get();
+
+        return response()->json($mahadaras);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        $request->validate([
-            'nom' => 'required|string|max:255',
-            'wilaya' => 'required|string|max:255',
-            'localisation' => 'nullable|string|max:255',
-            'description' => 'nullable|string'
-        ]);
-
-        $mahdara = Mahdara::create([
-            'nom' => $request->nom,
-            'wilaya' => $request->wilaya,
-            'localisation' => $request->localisation,
-            'description' => $request->description
-        ]);
-
-        return response()->json(['message' => 'Mahadara ajouté avec succès.', 'mahdara' => $mahdara], 201);
-    }
-
-    /**
-     * Display the specified resource.
-     */
     public function show(Mahdara $mahdara)
     {
-        //
+        abort_unless($mahdara->actif, 404);
+
+        return response()->json($mahdara->load([
+            'cheikhs' => fn ($query) => $query
+                ->whereHas('user', fn ($users) => $users->where('status', 'active'))
+                ->with([
+                    'user:id,name,prenom',
+                    'matieres' => fn ($matieres) => $matieres
+                        ->whereIn('actif', ['true', '1'])
+                        ->select('matieres.id', 'nom', 'slug'),
+                ]),
+        ])->loadCount('cours'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate($this->mahdaraRules());
+        $mahdara = Mahdara::create($validated);
+
+        return response()->json([
+            'message' => 'Mahdara ajoutée avec succès.',
+            'mahdara' => $mahdara,
+        ], 201);
+    }
+
     public function update(Request $request, Mahdara $mahdara)
     {
-        //
+        $mahdara->update($request->validate($this->mahdaraRules(partial: true)));
+
+        return response()->json([
+            'message' => 'Mahdara mise à jour avec succès.',
+            'mahdara' => $mahdara->refresh(),
+        ]);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(Mahdara $mahdara)
     {
-        //
+        $mahdara->delete();
+
+        return response()->json(['message' => 'Mahdara supprimée avec succès.']);
+    }
+
+    private function mahdaraRules(bool $partial = false): array
+    {
+        $prefix = $partial ? 'sometimes|' : '';
+
+        return [
+            'nom' => $prefix.'required|string|max:255',
+            'wilaya' => $prefix.'required|string|max:255',
+            'localisation' => $prefix.'nullable|string|max:255',
+            'description' => $prefix.'nullable|string|max:10000',
+            'actif' => $prefix.'sometimes|boolean',
+        ];
     }
 }

@@ -51,7 +51,6 @@ function Coran() {
   const [selectedMoshafId, setSelectedMoshafId] = useState(null);
   const [selectedSurah, setSelectedSurah] = useState(1);
   const [ayahs, setAyahs] = useState([]);
-  const [mode, setMode] = useState("lire");
   const [loadingSurahs, setLoadingSurahs] = useState(true);
   const [loadingAyahs, setLoadingAyahs] = useState(true);
   const [loadingCatalog, setLoadingCatalog] = useState(true);
@@ -190,7 +189,6 @@ function Coran() {
       }
       player.setPlaybackRate(PLAYBACK_RATES[playbackRateIndex]);
       player.play();
-      setMode("écouter");
       setAudioError("");
     } catch (playError) {
       if (screenActive.current) {
@@ -223,15 +221,6 @@ function Coran() {
             <Text style={styles.title}>Le Coran</Text>
           </View>
           <View style={styles.headerSeal}><Text style={styles.sealText}>۞</Text></View>
-        </View>
-
-        <View style={styles.modeSwitch}>
-          <Pressable onPress={() => setMode("lire")} style={[styles.modeOption, mode === "lire" && styles.modeSelected]}>
-            <Text style={[styles.modeText, mode === "lire" && styles.modeTextSelected]}>Lire</Text>
-          </Pressable>
-          <Pressable onPress={() => setMode("écouter")} style={[styles.modeOption, mode === "écouter" && styles.modeSelected]}>
-            <Text style={[styles.modeText, mode === "écouter" && styles.modeTextSelected]}>Écouter</Text>
-          </Pressable>
         </View>
 
         <View style={styles.catalogHeading}>
@@ -344,36 +333,6 @@ function Coran() {
           </ScrollView>
         )}
 
-        <View style={styles.surahCard}>
-          <View style={styles.surahCardTop}>
-            <View style={styles.surahIndex}><Text style={styles.surahIndexText}>{selectedSurah}</Text></View>
-            <View style={styles.surahInfo}>
-              <Text style={styles.surahLatin}>
-                {currentSurah?.displayName || "Sourate"}
-              </Text>
-              <Text style={styles.surahMeta}>
-                {currentSurah?.revelationType === "Meccan" ? "Mecquoise" : "Médinoise"}
-                  {currentSurah ? ` · ${currentSurah.numberOfAyahs} versets` : ""}
-              </Text>
-            </View>
-            <Text style={styles.surahArabicName}>{currentSurah?.name || "القرآن الكريم"}</Text>
-          </View>
-          <View style={styles.ornamentRule}><View style={styles.ornamentDiamond} /></View>
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
-          {loadingAyahs ? (
-            <ActivityIndicator color={colors.green600} style={styles.loader} />
-          ) : (
-            <View style={styles.ayahBlock}>
-              {ayahs.map((ayah) => (
-                <View key={ayah.number} style={styles.ayahRow}>
-                  <Text style={styles.ayahText}>{ayah.text.trim()}</Text>
-                  <View style={styles.ayahNumber}><Text style={styles.ayahNumberText}>{ayah.numberInSurah}</Text></View>
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
-
         <View style={styles.playerCard}>
           <View style={styles.playerTop}>
             <View style={styles.reciterMark}><Text style={styles.reciterGlyph}>♪</Text></View>
@@ -424,6 +383,36 @@ function Coran() {
             </Text>
           ) : null}
         </View>
+        <View style={styles.surahCard}>
+          <View style={styles.surahCardTop}>
+            <View style={styles.surahIndex}><Text style={styles.surahIndexText}>{selectedSurah}</Text></View>
+            <View style={styles.surahInfo}>
+              <Text style={styles.surahLatin}>
+                {currentSurah?.displayName || "Sourate"}
+              </Text>
+              <Text style={styles.surahMeta}>
+                {currentSurah?.revelationType === "Meccan" ? "Mecquoise" : "Médinoise"}
+                  {currentSurah ? ` · ${currentSurah.numberOfAyahs} versets` : ""}
+              </Text>
+            </View>
+            <Text style={styles.surahArabicName}>{currentSurah?.name || "القرآن الكريم"}</Text>
+          </View>
+          <View style={styles.ornamentRule}><View style={styles.ornamentDiamond} /></View>
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          {loadingAyahs ? (
+            <ActivityIndicator color={colors.green600} style={styles.loader} />
+          ) : (
+            <View style={styles.ayahBlock}>
+              {ayahs.map((ayah) => (
+                <View key={ayah.number} style={styles.ayahRow}>
+                  <Text style={styles.ayahText}>{ayah.text.trim()}</Text>
+                  <View style={styles.ayahNumber}><Text style={styles.ayahNumberText}>{ayah.numberInSurah}</Text></View>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+
         <Text style={styles.credit}>Texte · Al Quran Cloud · Récitation · mp3quran.net</Text>
       </ScrollView>
     </SafeAreaView>

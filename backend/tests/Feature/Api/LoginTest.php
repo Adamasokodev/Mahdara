@@ -18,6 +18,7 @@ class LoginTest extends TestCase
             'email' => 'test@example.com',
             'telephone' => '+22246565458',
             'password' => 'correct-password',
+            'status' => 'active',
         ]);
 
         $this->postJson('/api/login', [
@@ -34,5 +35,24 @@ class LoginTest extends TestCase
             'password' => 'correct-password',
         ])->assertUnprocessable()
             ->assertJsonValidationErrors('telephone');
+    }
+
+    public function test_an_inactive_account_cannot_log_in(): void
+    {
+        User::create([
+            'name' => 'Test',
+            'prenom' => 'Pending',
+            'email' => 'pending@example.com',
+            'telephone' => '+22246565459',
+            'password' => 'correct-password',
+            'status' => 'pending',
+        ]);
+
+        $this->postJson('/api/login', [
+            'telephone' => '+22246565459',
+            'password' => 'correct-password',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors('telephone')
+            ->assertJsonPath('errors.telephone.0', 'Votre compte n’est pas actif. Contactez un administrateur.');
     }
 }

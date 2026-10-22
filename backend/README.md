@@ -21,6 +21,18 @@ php artisan migrate --seed
 
 Seuls les comptes ayant le rôle `admin` et le statut `active` peuvent accéder au panneau.
 
+## Rôles et accès
+
+- **Visiteur** : accès sans compte; peut consulter les mahadras, les cheikhs actifs et le catalogue, et écouter les extraits publiés.
+- **Étudiant** : rôle attribué par défaut à l’inscription; son compte est actif et donne accès aux cours, à la progression et aux téléchargements disponibles.
+- **Cheikh** : enseignant rattaché à une mahdara; gère ses cours, consulte ses statistiques et répond aux questions.
+- **Assistant** : compte créé ou attribué dans le panneau d’administration et rattaché à un cheikh; peut ajouter, modifier et organiser les cours de ce cheikh.
+- **Administrateur** : compte actif ayant accès au panneau web et à la gestion du projet.
+
+Les visiteurs ne reçoivent que les métadonnées du catalogue et un lien d’extrait explicitement renseigné; le contenu complet et les liens des supports nécessitent un compte connecté.
+
+Les fonctions de progression, de téléchargement, de statistiques et de questions ne disposent pas encore d’écrans ou de routes API dans cette version; les rôles les décrivent, mais ces modules restent à implémenter.
+
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
 
 - [Simple, fast routing engine](https://laravel.com/docs/routing).

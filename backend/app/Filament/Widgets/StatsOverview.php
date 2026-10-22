@@ -8,6 +8,8 @@ use App\Models\User;
 
 class StatsOverview extends StatsOverviewWidget
 {
+    protected static ?int $sort = 1;
+
     protected function getStats(): array
     {
         return [

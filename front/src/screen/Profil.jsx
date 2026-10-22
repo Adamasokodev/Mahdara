@@ -3,60 +3,63 @@ import {
   Image,
   Alert,
   ActivityIndicator,
-  Modal,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
+import { API_URL } from "../config/api";
 import colors from "../theme/colors";
 
-const learningTools = [
-  {
-    icon: "▤",
-    title: "Mes cours",
-    description: "Retrouvez vos enseignements",
-    color: "#DCEBE3",
-  },
-  {
-    icon: "◷",
-    title: "Progression",
-    description: "Suivez votre parcours",
-    color: "#F3E9CC",
-  },
-  {
-    icon: "✦",
-    title: "Les cheikhs",
-    description: "Découvrez vos enseignants",
-    color: "#E9E3F2",
-  },
-  {
-    icon: "⌂",
-    title: "Les mahdaras",
-    description: "Apprenez au sein d’une communauté",
-    color: "#E4ECE8",
-  },
-];
+const roleLabels = {
+  student: "Étudiant",
+  cheikh: "Cheikh",
+  assistant: "Assistant",
+  admin: "Administrateur",
+};
 
-function Profil() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [telephone, setTelephone] = useState("");
-  const [draftName, setDraftName] = useState(name);
-  const [draftEmail, setDraftEmail] = useState(email);
-  const [draftTelephone, setDraftTelephone] = useState(telephone);
-  const [editVisible, setEditVisible] = useState(false);
+const toolsByRole = {
+  guest: [
+    { icon: "▤", title: "Catalogue des cours", description: "Cours publics et extraits", color: "#DCEBE3", action: "courses" },
+    { icon: "✦", title: "Cheikhs", description: "Enseignants actifs", color: "#E9E3F2", action: "mahadras" },
+    { icon: "⌂", title: "Mahadras", description: "Lieux d’enseignement", color: "#E4ECE8", action: "mahadras" },
+  ],
+  student: [
+    { icon: "▤", title: "Mes cours", description: "Accéder aux cours", color: "#DCEBE3", action: "courses" },
+    { icon: "◷", title: "Progression", description: "Suivi bientôt disponible", color: "#F3E9CC", action: "progress" },
+    { icon: "⇩", title: "Téléchargements", description: "Bientôt disponible", color: "#E4ECE8", action: "downloads" },
+    { icon: "⌂", title: "Les mahadras", description: "Lieux d’enseignement", color: "#E9E3F2", action: "mahadras" },
+  ],
+  cheikh: [
+    { icon: "▤", title: "Gérer mes cours", description: "Créer et organiser", color: "#DCEBE3", action: "courses" },
+    { icon: "◷", title: "Statistiques", description: "Bientôt disponible", color: "#F3E9CC", action: "statistics" },
+    { icon: "✉", title: "Questions", description: "Réponses bientôt disponibles", color: "#E9E3F2", action: "questions" },
+    { icon: "⌂", title: "Ma mahdara", description: "Voir les mahadras", color: "#E4ECE8", action: "mahadras" },
+  ],
+  assistant: [
+    { icon: "▤", title: "Gérer les cours", description: "Au nom du cheikh référent", color: "#DCEBE3", action: "courses" },
+    { icon: "⌂", title: "Les mahadras", description: "Lieux d’enseignement", color: "#E4ECE8", action: "mahadras" },
+  ],
+  admin: [
+    { icon: "⚙", title: "Panel web", description: "Gestion complète", color: "#F3E9CC", action: "admin" },
+    { icon: "▤", title: "Catalogue des cours", description: "Consulter les cours", color: "#DCEBE3", action: "courses" },
+    { icon: "⌂", title: "Mahadras & cheikhs", description: "Consulter les structures", color: "#E4ECE8", action: "mahadras" },
+  ],
+};
+
+function Profil({ navigation }) {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [notice, setNotice] = useState("");
   const [signingOut, setSigningOut] = useState(false);
 
-  const { signOut } = useAuth();
+  const { token, user, signOut } = useAuth();
+  const roleTools = toolsByRole[user?.role] || toolsByRole.guest;
 
   const handleSignOut = async () => {
     setSigningOut(true);
@@ -82,23 +85,13 @@ function Profil() {
     ]);
   };
 
-  const openProfileEditor = () => {
-    setDraftName(name);
-    setDraftEmail(email);
-    setDraftTelephone(telephone);
-    setEditVisible(true);
-  };
-
-  const saveProfile = () => {
-    setName(draftName.trim());
-    setEmail(draftEmail.trim());
-    setTelephone(draftTelephone.trim());
-    setEditVisible(false);
-    setNotice("Profil mis à jour sur cet appareil.");
-  };
-
-  const showComingSoon = (feature) => {
-    setNotice(`${feature} sera disponible après la connexion au service.`);
+  const openPanel = async () => {
+    const panelUrl = `${API_URL.replace(/\/api\/?$/, "")}/admin`;
+    if (await Linking.canOpenURL(panelUrl)) {
+      await Linking.openURL(panelUrl);
+    } else {
+      setNotice("Le panel web n’est pas accessible depuis cet appareil.");
+    }
   };
 
   return (
@@ -139,12 +132,16 @@ function Profil() {
           <View style={styles.profileTop}>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>
-                {name ? name.charAt(0).toLocaleUpperCase("fr") : "م"}
+                {user?.prenom?.[0]?.toLocaleUpperCase("fr") || "م"}
               </Text>
             </View>
             <View style={styles.profileIdentity}>
-              <Text style={styles.profileName}>{name || "Étudiant Mahdara"}</Text>
-              <Text style={styles.profileRole}>MEMBRE DE LA MAHDARA</Text>
+              <Text style={styles.profileName}>
+                {user ? `${user.prenom || ""} ${user.name || ""}`.trim() : "Visiteur"}
+              </Text>
+              <Text style={styles.profileRole}>
+                {user ? roleLabels[user.role] || user.role : "SANS COMPTE"}
+              </Text>
             </View>
             <View style={styles.memberBadge}>
               <Text style={styles.memberBadgeText}>✦</Text>
@@ -155,22 +152,42 @@ function Profil() {
             <View style={styles.profileContact}>
               <Text style={styles.contactLabel}>CONTACT</Text>
               <Text style={styles.contactValue}>
-                {email || telephone || "Complétez vos informations"}
+                {user?.email || user?.telephone || "Catalogue public"}
               </Text>
             </View>
-            <Pressable
-              accessibilityRole="button"
-              onPress={openProfileEditor}
-              style={({ pressed }) => [
-                styles.editButton,
-                pressed && styles.buttonPressed,
-              ]}
-            >
-              <Text style={styles.editButtonText}>Modifier</Text>
-              <Text style={styles.editArrow}>↗</Text>
-            </Pressable>
+            {user?.status ? (
+              <Text style={styles.accountStatus}>
+                {user.status === "active" ? "Compte actif" : "Compte en attente"}
+              </Text>
+            ) : null}
           </View>
         </View>
+
+        {!token ? (
+          <View style={styles.guestCard}>
+            <Text style={styles.guestTitle}>Explorez Mahdara librement</Text>
+            <Text style={styles.guestDescription}>
+              Consultez les cours, les mahadras et les cheikhs sans vous connecter.
+              La connexion est nécessaire uniquement pour accéder aux fonctions de votre compte.
+            </Text>
+            <View style={styles.guestActions}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => navigation.navigate("Login")}
+                style={styles.guestPrimaryButton}
+              >
+                <Text style={styles.guestPrimaryText}>Se connecter</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => navigation.navigate("Register")}
+                style={styles.guestSecondaryButton}
+              >
+                <Text style={styles.guestSecondaryText}>Créer un compte</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
 
         {notice ? (
           <Pressable
@@ -187,44 +204,43 @@ function Profil() {
 
         <View style={styles.sectionHeading}>
           <View>
-            <Text style={styles.sectionEyebrow}>APPRENDRE & PROGRESSER</Text>
-            <Text style={styles.sectionTitle}>Votre parcours</Text>
+            <Text style={styles.sectionEyebrow}>ESPACE {roleLabels[user?.role]?.toLocaleUpperCase("fr") || "VISITEUR"}</Text>
+            <Text style={styles.sectionTitle}>Vos accès</Text>
           </View>
           <Text style={styles.sectionOrnament}>۞</Text>
         </View>
 
-        <View style={styles.progressCard}>
-          <View style={styles.progressTop}>
-            <View style={styles.progressIcon}>
-              <Text style={styles.progressIconText}>◷</Text>
-            </View>
-            <View style={styles.progressCopy}>
-              <Text style={styles.progressTitle}>Un pas après l’autre</Text>
-              <Text style={styles.progressDescription}>
-                Votre espace de suivi des apprentissages
-              </Text>
-            </View>
-            <Text style={styles.progressArrow}>→</Text>
-          </View>
-          <View style={styles.progressRule} />
-          <Text style={styles.progressFootnote}>
-            Vos cours et votre progression apparaîtront ici.
-          </Text>
-        </View>
-
         <View style={styles.sectionHeading}>
           <View>
-            <Text style={styles.sectionEyebrow}>LES RESSOURCES</Text>
-            <Text style={styles.sectionTitle}>Explorez Mahdara</Text>
+            <Text style={styles.sectionEyebrow}>FONCTIONNALITÉS DU RÔLE</Text>
+            <Text style={styles.sectionTitle}>
+              {roleLabels[user?.role] || "Visiteur"}
+            </Text>
           </View>
         </View>
 
         <View style={styles.toolsGrid}>
-          {learningTools.map((tool) => (
+          {roleTools.map((tool) => (
             <Pressable
               accessibilityRole="button"
               key={tool.title}
-              onPress={() => showComingSoon(tool.title)}
+              onPress={() => {
+                if (tool.action === "courses") {
+                  navigation.navigate("Cours");
+                } else if (tool.action === "mahadras") {
+                  navigation.navigate("Mahadra");
+                } else if (tool.action === "admin") {
+                  openPanel();
+                } else {
+                  const unavailable = {
+                    progress: "Le suivi de progression sera disponible dans une prochaine version.",
+                    downloads: "Les téléchargements ne sont pas encore disponibles.",
+                    statistics: "Les statistiques des cheikhs ne sont pas encore disponibles.",
+                    questions: "La messagerie des questions n’est pas encore disponible.",
+                  };
+                  setNotice(unavailable[tool.action] || "Cette fonctionnalité sera disponible prochainement.");
+                }
+              }}
               style={({ pressed }) => [
                 styles.toolCard,
                 pressed && styles.toolCardPressed,
@@ -269,7 +285,7 @@ function Profil() {
           <View style={styles.settingsDivider} />
           <Pressable
             accessibilityRole="button"
-            onPress={() => showComingSoon("Aide & accompagnement")}
+            onPress={() => setNotice("Contactez l’équipe Mahdara pour obtenir de l’aide.")}
             style={({ pressed }) => [
               styles.helpRow,
               pressed && styles.buttonPressed,
@@ -307,109 +323,41 @@ function Profil() {
           MAHDARA · SAVOIR ISLAMIQUE ET ENSEIGNEMENT TRADITIONNEL
         </Text>
 
-         <View style={styles.logoutSection}>
-          <Text style={styles.logoutEyebrow}>VOTRE COMPTE</Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Se déconnecter"
-            accessibilityState={{ disabled: signingOut, busy: signingOut }}
-            disabled={signingOut}
-            onPress={confirmSignOut}
-            style={({ pressed }) => [
-              styles.logoutButton,
-              pressed && !signingOut && styles.buttonPressed,
-              signingOut && styles.logoutButtonDisabled,
-            ]}
-          >
-            <View style={styles.logoutIcon}>
-              <Text style={styles.logoutIconText}>↪</Text>
-            </View>
-            <View style={styles.logoutCopy}>
-              <Text style={styles.logoutButtonTitle}>
-                {signingOut ? "Déconnexion en cours…" : "Se déconnecter"}
-              </Text>
-              <Text style={styles.logoutButtonSubtitle}>
-                Terminer votre session sur cet appareil
-              </Text>
-            </View>
-            {signingOut ? (
-              <ActivityIndicator color="#A33B34" />
-            ) : (
-              <Text style={styles.logoutArrow}>›</Text>
-            )}
-          </Pressable>
-        </View>
-      </ScrollView>
-
-      <Modal
-        animationType="fade"
-        onRequestClose={() => setEditVisible(false)}
-        transparent
-        visible={editVisible}
-      >
-        <View style={styles.modalBackdrop}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Fermer la fenêtre de modification"
-            onPress={() => setEditVisible(false)}
-            style={StyleSheet.absoluteFill}
-          />
-          <View style={styles.modalCard}>
-            <Text style={styles.modalEyebrow}>VOTRE ESPACE</Text>
-            <Text style={styles.modalTitle}>Compléter le profil</Text>
-            <Text style={styles.modalDescription}>
-              Ces informations sont enregistrées localement pour cet aperçu.
-            </Text>
-
-            <Text style={styles.inputLabel}>Nom affiché</Text>
-            <TextInput
-              autoCapitalize="words"
-              onChangeText={setDraftName}
-              placeholder="Votre nom"
-              placeholderTextColor="#92978F"
-              style={styles.input}
-              value={draftName}
-            />
-            <Text style={styles.inputLabel}>Adresse e-mail</Text>
-            <TextInput
-              autoCapitalize="none"
-              keyboardType="email-address"
-              onChangeText={setDraftEmail}
-              placeholder="vous@exemple.com"
-              placeholderTextColor="#92978F"
-              style={styles.input}
-              value={draftEmail}
-            />
-            <Text style={styles.inputLabel}>Téléphone</Text>
-            <TextInput
-              keyboardType="phone-pad"
-              onChangeText={setDraftTelephone}
-              placeholder="+222"
-              placeholderTextColor="#92978F"
-              style={styles.input}
-              value={draftTelephone}
-            />
+        {token ? (
+          <View style={styles.logoutSection}>
+            <Text style={styles.logoutEyebrow}>VOTRE COMPTE</Text>
             <Pressable
               accessibilityRole="button"
-              onPress={saveProfile}
+              accessibilityLabel="Se déconnecter"
+              accessibilityState={{ disabled: signingOut, busy: signingOut }}
+              disabled={signingOut}
+              onPress={confirmSignOut}
               style={({ pressed }) => [
-                styles.saveButton,
-                pressed && styles.buttonPressed,
+                styles.logoutButton,
+                pressed && !signingOut && styles.buttonPressed,
+                signingOut && styles.logoutButtonDisabled,
               ]}
             >
-              <Text style={styles.saveButtonText}>Enregistrer l’aperçu</Text>
-              <Text style={styles.saveButtonArrow}>→</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setEditVisible(false)}
-              style={styles.cancelButton}
-            >
-              <Text style={styles.cancelButtonText}>Annuler</Text>
+              <View style={styles.logoutIcon}>
+                <Text style={styles.logoutIconText}>↪</Text>
+              </View>
+              <View style={styles.logoutCopy}>
+                <Text style={styles.logoutButtonTitle}>
+                  {signingOut ? "Déconnexion en cours…" : "Se déconnecter"}
+                </Text>
+                <Text style={styles.logoutButtonSubtitle}>
+                  Terminer votre session sur cet appareil
+                </Text>
+              </View>
+              {signingOut ? (
+                <ActivityIndicator color="#A33B34" />
+              ) : (
+                <Text style={styles.logoutArrow}>›</Text>
+              )}
             </Pressable>
           </View>
-        </View>
-      </Modal>
+        ) : null}
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -581,24 +529,81 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginTop: 5,
   },
-  editButton: {
-    minHeight: 36,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 11,
-    borderRadius: 10,
-    backgroundColor: "#E4C46D",
+  accountStatus: {
+    color: "#E4C46D",
+    fontSize: 10,
+    fontWeight: "700",
   },
-  editButtonText: {
-    color: "#173D30",
+  guestCard: {
+    padding: 16,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: "#E5DFCC",
+    borderRadius: 16,
+    backgroundColor: "#FFFFFF",
+  },
+  guestTitle: {
+    color: "#183D32",
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  guestDescription: {
+    color: "#717A73",
+    fontSize: 11,
+    lineHeight: 17,
+    marginTop: 6,
+  },
+  guestActions: {
+    flexDirection: "row",
+    gap: 9,
+    marginTop: 12,
+  },
+  guestPrimaryButton: {
+    minHeight: 40,
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 10,
+    backgroundColor: colors.green600,
+  },
+  guestPrimaryText: {
+    color: "#FFFFFF",
     fontSize: 11,
     fontWeight: "800",
   },
-  editArrow: {
-    color: "#173D30",
-    fontSize: 15,
-    fontWeight: "700",
-    marginLeft: 7,
+  guestSecondaryButton: {
+    minHeight: 40,
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#D9DCCF",
+    borderRadius: 10,
+  },
+  guestSecondaryText: {
+    color: "#24483A",
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  adminPanelButton: {
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 14,
+    borderRadius: 11,
+    backgroundColor: colors.green600,
+  },
+  adminPanelButtonText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  adminPanelArrow: {
+    color: "#E4C46D",
+    fontSize: 16,
+    fontWeight: "800",
   },
   buttonPressed: {
     opacity: 0.78,
@@ -956,87 +961,6 @@ const styles = StyleSheet.create({
     lineHeight: 14,
     marginTop: 20,
     textAlign: "center",
-  },
-  modalBackdrop: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
-    backgroundColor: "rgba(18, 39, 31, 0.55)",
-  },
-  modalCard: {
-    width: "100%",
-    maxWidth: 420,
-    padding: 21,
-    borderRadius: 20,
-    backgroundColor: "#FFFFFF",
-  },
-  modalEyebrow: {
-    color: "#B28B2E",
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 1.3,
-  },
-  modalTitle: {
-    color: "#183D32",
-    fontSize: 23,
-    fontWeight: "800",
-    marginTop: 6,
-  },
-  modalDescription: {
-    color: "#717A73",
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: 6,
-    marginBottom: 13,
-  },
-  inputLabel: {
-    color: "#315243",
-    fontSize: 11,
-    fontWeight: "700",
-    marginTop: 10,
-    marginBottom: 6,
-  },
-  input: {
-    minHeight: 45,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: "#E8E5DA",
-    borderRadius: 10,
-    backgroundColor: "#FBFAF6",
-    color: "#183D32",
-    fontSize: 13,
-  },
-  saveButton: {
-    minHeight: 47,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 20,
-    borderRadius: 12,
-    backgroundColor: colors.green600,
-  },
-  saveButtonText: {
-    color: "#FFFFFF",
-    fontSize: 13,
-    fontWeight: "800",
-  },
-  saveButtonArrow: {
-    color: "#E4C46D",
-    fontSize: 17,
-    fontWeight: "700",
-    marginLeft: 9,
-  },
-  cancelButton: {
-    minHeight: 40,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 5,
-  },
-  cancelButtonText: {
-    color: "#717A73",
-    fontSize: 12,
-    fontWeight: "700",
   },
 });
 

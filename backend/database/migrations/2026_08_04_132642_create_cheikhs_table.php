@@ -13,11 +13,13 @@ return new class extends Migration
     {
         Schema::create('cheikhs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('mahdara_id')->constrained('mahdaras')->cascadeOnDelete();
-            $table->string('specialite')->nullable(); // fiqh, tafsir, nahw...
+            $table->foreignId('user_id')->constrained()->restrictOnDelete();
+            $table->foreignId('mahdara_id')->constrained('mahdaras')->restrictOnDelete();
+            $table->string('photo_path')->nullable();
             $table->text('bio')->nullable();
+            $table->boolean('verifier')->default(false);
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

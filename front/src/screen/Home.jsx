@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import colors from "../theme/colors";
+import { useAuth } from "../context/AuthContext";
 
 const categories = ["Tout", "Fiqh", "Coran", "Langue arabe", "Seerah"];
 
@@ -61,6 +62,7 @@ const mahdaras = [
 ];
 
 function Home({ navigation }) {
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("Tout");
 
@@ -151,8 +153,18 @@ function Home({ navigation }) {
         </View>
 
         <View style={styles.sectionHeading}>
-          <Text style={styles.sectionTitle}>Reprendre</Text>
-          <Text style={styles.sectionHint}>Votre parcours</Text>
+          <Text style={styles.sectionTitle}>
+            {user?.role === "cheikh" || user?.role === "assistant"
+              ? "Votre espace d’enseignement"
+              : user?.role === "admin"
+                ? "Espace administration"
+                : user?.role === "student"
+                  ? "Votre espace étudiant"
+                  : "Bienvenue sur Mahdara"}
+          </Text>
+          <Text style={styles.sectionHint}>
+            {user ? "Selon votre rôle" : "Accès visiteur"}
+          </Text>
         </View>
         <Pressable
           accessibilityRole="button"
@@ -161,17 +173,44 @@ function Home({ navigation }) {
         >
           <View style={styles.resumeTop}>
             <View style={styles.resumeBook}>
-              <Text style={styles.resumeBookIcon}>▤</Text>
+              <Text style={styles.resumeBookIcon}>
+                {user?.role === "cheikh" || user?.role === "assistant" ? "✎" : "▤"}
+              </Text>
             </View>
             <View style={styles.resumeCopy}>
-              <Text style={styles.resumeEyebrow}>EN COURS · FIQH</Text>
-              <Text style={styles.resumeTitle}>Mukhtasar Khalil</Text>
-              <Text style={styles.resumeMeta}>Chapitre 3 · 18 min restantes</Text>
+              <Text style={styles.resumeEyebrow}>
+                {user?.role === "cheikh" || user?.role === "assistant"
+                  ? "GESTION DES COURS"
+                  : user?.role === "admin"
+                    ? "CATALOGUE PUBLIC"
+                    : "DÉCOUVRIR"}
+              </Text>
+              <Text style={styles.resumeTitle}>
+                {user?.role === "cheikh" || user?.role === "assistant"
+                  ? "Organiser les cours"
+                  : "Explorer les cours"}
+              </Text>
+              <Text style={styles.resumeMeta}>
+                {user?.role === "student"
+                  ? "Consultez les cours et leurs supports"
+                  : user?.role === "cheikh" || user?.role === "assistant"
+                    ? "Ajouter, modifier et organiser les cours"
+                    : "Parcourez le catalogue sans créer de compte"}
+              </Text>
             </View>
             <View style={styles.playButton}><Text style={styles.playIcon}>▶</Text></View>
           </View>
-          <View style={styles.progressTrack}><View style={styles.progressFill} /></View>
-          <Text style={styles.progressText}>Votre progression <Text style={styles.progressPercent}>35 %</Text></Text>
+          <Text style={styles.progressText}>
+            {user?.role === "admin"
+              ? "Administration complète disponible sur le panel web."
+              : user?.role === "student"
+                ? "La progression et les téléchargements seront ajoutés prochainement."
+                : user?.role === "cheikh"
+                  ? "Les statistiques et les questions seront ajoutées prochainement."
+                  : user?.role === "assistant"
+                    ? "Vous intervenez au nom du cheikh qui vous est rattaché."
+                    : "Les extraits audio sont disponibles sur les fiches de cours."}
+          </Text>
         </Pressable>
 
         <View style={styles.sectionHeading}>

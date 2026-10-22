@@ -3,10 +3,21 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Mahdara extends Model
 {
-    protected $fillable = ['nom', 'wilaya', 'localisation', 'description'];
+    use SoftDeletes;
+
+    protected $fillable = ['nom', 'wilaya', 'localisation', 'description', 'actif'];
+
+    protected function casts(): array
+    {
+        return [
+            'actif' => 'boolean',
+        ];
+    }
+
     public function cheikhs()
     {
         return $this->hasMany(Cheikh::class);

@@ -1,6 +1,9 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   Image,
+  Linking,
   Modal,
   Pressable,
   ScrollView,
@@ -12,6 +15,8 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import colors from "../theme/colors";
+import { useAuth } from "../context/AuthContext";
+import { API_URL } from "../config/api";
 
 const categories = ["Tout", "Le Coran", "Langue arabe", "Sciences islamiques"];
 
@@ -84,22 +89,89 @@ const courses = [
   },
 ];
 
+const toPublishedCourse = (course) => ({
+  id: `published-${course.id}`,
+  serverId: course.id,
+  title: course.titre,
+  category: course.matiere,
+  description: course.contenu || "",
+  level: course.niveau,
+  duration: course.duree_minutes,
+  book: course.livre,
+  mediaType: course.type_media,
+  mediaUrl: course.fichier_url,
+  excerptUrl: course.extrait_url,
+  teacher: [course.cheikh?.user?.prenom, course.cheikh?.user?.name].filter(Boolean).join(" "),
+  icon: course.type_media === "video" ? "▶" : "♫",
+  color: "#DCEBE3",
+});
+
 function Cours() {
+  const { token } = useAuth();
+  const [publishedCourses, setPublishedCourses] = useState([]);
+  const [canPublish, setCanPublish] = useState(false);
+  const [isAssistant, setIsAssistant] = useState(false);
+  const [loadingCourses, setLoadingCourses] = useState(true);
+  const [showCourseForm, setShowCourseForm] = useState(false);
+  const [savingCourse, setSavingCourse] = useState(false);
+  const [editingCourseId, setEditingCourseId] = useState(null);
+  const [courseError, setCourseError] = useState("");
+  const [draft, setDraft] = useState({
+    titre: "", matiere: "", livre: "", contenu: "", type_media: "audio",
+    fichier_url: "", extrait_url: "", niveau: "Débutant", duree_minutes: "",
+  });
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Tout");
   const [favorites, setFavorites] = useState([]);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
 
+  useEffect(() => {
+    let active = true;
+    const headers = {
+      Accept: "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+    if (token) {
+      fetch(`${API_URL}/user`, { headers })
+        .then((response) => response.ok ? response.json() : Promise.reject(new Error("Profil indisponible")))
+        .then((user) => {
+          if (!active) return;
+          const activeStaff = user.status === "active";
+          setCanPublish(activeStaff && ["cheikh", "assistant"].includes(user.role));
+          setIsAssistant(activeStaff && user.role === "assistant");
+        })
+        .catch(() => {
+          if (active) setCourseError("Votre profil n’est pas accessible pour le moment.");
+        });
+    } else {
+      setCanPublish(false);
+      setIsAssistant(false);
+    }
+
+    fetch(`${API_URL}/cours`, { headers })
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error("Cours indisponibles")))
+      .then((data) => {
+        if (!active) return;
+        setPublishedCourses((Array.isArray(data) ? data : []).map(toPublishedCourse));
+      })
+      .catch(() => { if (active) setCourseError("Les cours publiés ne sont pas accessibles pour le moment."); })
+      .finally(() => { if (active) setLoadingCourses(false); });
+
+    return () => { active = false; };
+  }, [token]);
+
+  const allCourses = useMemo(() => [...courses, ...publishedCourses], [publishedCourses]);
+
   const filteredCourses = useMemo(() => {
     const normalizedSearch = search.trim().toLocaleLowerCase("fr");
 
-    return courses.filter((course) => {
+    return allCourses.filter((course) => {
       const matchesCategory =
         selectedCategory === "Tout" || course.category === selectedCategory;
       const matchesSearch =
         !normalizedSearch ||
-        `${course.title} ${course.category} ${course.level}`
+        `${course.title} ${course.category} ${course.level} ${course.book || ""}`
           .toLocaleLowerCase("fr")
           .includes(normalizedSearch);
       const matchesFavorites =
@@ -107,7 +179,101 @@ function Cours() {
 
       return matchesCategory && matchesSearch && matchesFavorites;
     });
-  }, [favorites, favoritesOnly, search, selectedCategory]);
+  }, [allCourses, favorites, favoritesOnly, search, selectedCategory]);
+
+  const updateDraft = (key, value) => setDraft((current) => ({ ...current, [key]: value }));
+
+  const publishCourse = async () => {
+    setCourseError("");
+    setSavingCourse(true);
+    try {
+      const response = await fetch(
+        `${API_URL}/cours${editingCourseId ? `/${editingCourseId}` : ""}`,
+        {
+          method: editingCourseId ? "PATCH" : "POST",
+          headers: { Accept: "application/json", "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            ...draft,
+            duree_minutes: draft.duree_minutes ? Number(draft.duree_minutes) : null,
+          }),
+        },
+      );
+      const result = await response.json();
+      if (!response.ok) {
+        const validation = result.errors ? Object.values(result.errors).flat()[0] : result.message;
+        throw new Error(validation || "Le cours n’a pas pu être publié.");
+      }
+      const course = result.cours;
+      const updatedCourse = toPublishedCourse(course);
+      setPublishedCourses((current) => editingCourseId
+        ? current.map((item) => item.serverId === editingCourseId ? updatedCourse : item)
+        : [updatedCourse, ...current]);
+      setDraft({ titre: "", matiere: "", livre: "", contenu: "", type_media: "audio", fichier_url: "", extrait_url: "", niveau: "Débutant", duree_minutes: "" });
+      setEditingCourseId(null);
+      setShowCourseForm(false);
+    } catch (error) {
+      setCourseError(error.message || "Une erreur est survenue lors de la publication.");
+    } finally {
+      setSavingCourse(false);
+    }
+  };
+
+  const editCourse = (course) => {
+    setCourseError("");
+    setDraft({
+      titre: course.title,
+      matiere: course.category,
+      livre: course.book || "",
+      contenu: course.description,
+      type_media: course.mediaType,
+      fichier_url: course.mediaUrl,
+      extrait_url: course.excerptUrl || "",
+      niveau: course.level,
+      duree_minutes: course.duration ? String(course.duration) : "",
+    });
+    setEditingCourseId(course.serverId);
+    setShowCourseForm(true);
+  };
+
+  const deleteCourse = (course) => {
+    if (savingCourse) return;
+
+    Alert.alert(
+      "Supprimer ce cours ?",
+      `Le cours « ${course.title} » sera définitivement supprimé.`,
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Supprimer",
+          style: "destructive",
+          onPress: async () => {
+            setCourseError("");
+            setSavingCourse(true);
+            try {
+              const response = await fetch(`${API_URL}/cours/${course.serverId}`, {
+                method: "DELETE",
+                headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
+              });
+              const result = await response.json();
+              if (!response.ok) {
+                throw new Error(result.message || "Le cours n’a pas pu être supprimé.");
+              }
+              setPublishedCourses((current) => current.filter((item) => item.serverId !== course.serverId));
+              if (selectedCourse?.serverId === course.serverId) setSelectedCourse(null);
+              if (editingCourseId === course.serverId) {
+                setEditingCourseId(null);
+                setShowCourseForm(false);
+              }
+            } catch (error) {
+              setCourseError(error.message || "Une erreur est survenue lors de la suppression.");
+            } finally {
+              setSavingCourse(false);
+            }
+          },
+        },
+      ],
+    );
+  };
 
   const toggleFavorite = (courseId) => {
     setFavorites((current) =>
@@ -150,6 +316,70 @@ function Cours() {
             prochain apprentissage.
           </Text>
         </View>
+
+        {canPublish ? (
+          <View style={styles.publishPanel}>
+            <Text style={styles.publishTitle}>{isAssistant ? "Espace assistant" : "Espace cheikh"}</Text>
+            <Text style={styles.publishHint}>
+              {isAssistant
+                ? "Organisez et publiez les cours au nom du cheikh auquel vous êtes rattaché."
+                : "Publiez un cours avec son texte de révision et son support audio ou vidéo."}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => { setCourseError(""); setShowCourseForm((value) => !value); }}
+              style={styles.publishButton}
+            >
+              <Text style={styles.publishButtonText}>
+                {showCourseForm
+                  ? "Fermer le formulaire"
+                  : editingCourseId
+                    ? "Modifier le cours"
+                    : "+ Ajouter un cours"}
+              </Text>
+            </Pressable>
+            {showCourseForm ? (
+              <View style={styles.courseForm}>
+                <TextInput placeholder="Titre du cours" value={draft.titre} onChangeText={(value) => updateDraft("titre", value)} style={styles.formInput} />
+                <TextInput placeholder="Matière (ex. Fiqh, Coran)" value={draft.matiere} onChangeText={(value) => updateDraft("matiere", value)} style={styles.formInput} />
+                <TextInput placeholder="Nom du livre étudié" value={draft.livre} onChangeText={(value) => updateDraft("livre", value)} style={styles.formInput} />
+                <TextInput placeholder="Niveau (ex. Débutant)" value={draft.niveau} onChangeText={(value) => updateDraft("niveau", value)} style={styles.formInput} />
+                <TextInput placeholder="Durée en minutes (facultatif)" keyboardType="number-pad" value={draft.duree_minutes} onChangeText={(value) => updateDraft("duree_minutes", value)} style={styles.formInput} />
+                <Text style={styles.formLabel}>Type de support</Text>
+                <View style={styles.mediaTypeRow}>
+                  {["audio", "video"].map((type) => (
+                    <Pressable key={type} onPress={() => updateDraft("type_media", type)} style={[styles.mediaTypeButton, draft.type_media === type && styles.mediaTypeButtonSelected]}>
+                      <Text style={[styles.mediaTypeText, draft.type_media === type && styles.mediaTypeTextSelected]}>{type === "audio" ? "Audio" : "Vidéo"}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+                <TextInput placeholder="Lien public vers l'audio ou la vidéo (https://…)" autoCapitalize="none" keyboardType="url" value={draft.fichier_url} onChangeText={(value) => updateDraft("fichier_url", value)} style={styles.formInput} />
+                <TextInput placeholder="Lien audio d’extrait pour les visiteurs (facultatif)" autoCapitalize="none" keyboardType="url" value={draft.extrait_url} onChangeText={(value) => updateDraft("extrait_url", value)} style={styles.formInput} />
+                <TextInput placeholder="Texte du cours, notes ou passage à mémoriser" multiline textAlignVertical="top" value={draft.contenu} onChangeText={(value) => updateDraft("contenu", value)} style={[styles.formInput, styles.formTextArea]} />
+                {courseError ? <Text style={styles.formError}>{courseError}</Text> : null}
+                <Pressable disabled={savingCourse} onPress={publishCourse} style={[styles.publishButton, savingCourse && styles.buttonPressed]}>
+                  {savingCourse ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.publishButtonText}>{editingCourseId ? "Enregistrer les modifications" : "Publier le cours"}</Text>}
+                </Pressable>
+                {editingCourseId ? (
+                  <Pressable
+                    disabled={savingCourse}
+                    onPress={() => {
+                      setEditingCourseId(null);
+                      setDraft({ titre: "", matiere: "", livre: "", contenu: "", type_media: "audio", fichier_url: "", extrait_url: "", niveau: "Débutant", duree_minutes: "" });
+                      setShowCourseForm(false);
+                    }}
+                    style={styles.cancelEditButton}
+                  >
+                    <Text style={styles.cancelEditButtonText}>Annuler la modification</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
+        {loadingCourses ? <ActivityIndicator color={colors.green600} style={styles.courseLoader} /> : null}
+        {!loadingCourses && courseError && (!canPublish || !showCourseForm) ? <Text style={styles.loadError}>{courseError}</Text> : null}
 
         <Pressable
           accessibilityRole="button"
@@ -307,10 +537,12 @@ function Cours() {
                     <Text style={styles.courseTitle}>{course.title}</Text>
                     <View style={styles.courseDetails}>
                       <Text style={styles.courseDetail}>{course.level}</Text>
-                      <Text style={styles.detailDivider}>·</Text>
-                      <Text style={styles.courseDetail}>
-                        {course.duration} min
-                      </Text>
+                      {course.duration ? (
+                        <>
+                          <Text style={styles.detailDivider}>·</Text>
+                          <Text style={styles.courseDetail}>{course.duration} min</Text>
+                        </>
+                      ) : null}
                     </View>
                     <Pressable
                       accessibilityRole="button"
@@ -325,6 +557,24 @@ function Cours() {
                       </Text>
                       <Text style={styles.detailsArrow}>→</Text>
                     </Pressable>
+                    {canPublish && course.serverId ? (
+                      <View style={styles.courseManageActions}>
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => editCourse(course)}
+                          style={styles.courseManageButton}
+                        >
+                          <Text style={styles.courseManageText}>Modifier</Text>
+                        </Pressable>
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => deleteCourse(course)}
+                          style={styles.courseManageButton}
+                        >
+                          <Text style={styles.courseDeleteText}>Supprimer</Text>
+                        </Pressable>
+                      </View>
+                    ) : null}
                   </View>
                 </View>
               );
@@ -377,7 +627,7 @@ function Cours() {
             style={StyleSheet.absoluteFill}
           />
           {selectedCourse ? (
-            <View style={styles.modalCard}>
+            <ScrollView style={styles.modalCard} contentContainerStyle={styles.modalCardContent} showsVerticalScrollIndicator={false}>
               <View
                 style={[
                   styles.modalIcon,
@@ -390,6 +640,7 @@ function Cours() {
                 {selectedCourse.category.toLocaleUpperCase("fr")}
               </Text>
               <Text style={styles.modalTitle}>{selectedCourse.title}</Text>
+              {selectedCourse.book ? <Text style={styles.lessonTextHeading}>Texte pour étudier et mémoriser</Text> : null}
               <Text style={styles.modalDescription}>
                 {selectedCourse.description}
               </Text>
@@ -399,9 +650,21 @@ function Cours() {
                 </Text>
                 <Text style={styles.detailDivider}>·</Text>
                 <Text style={styles.modalMetaText}>
-                  {selectedCourse.duration} minutes
+                  {selectedCourse.duration ? `${selectedCourse.duration} minutes` : "Durée non précisée"}
                 </Text>
               </View>
+              {selectedCourse.book ? <Text style={styles.modalBook}>Livre étudié : {selectedCourse.book}</Text> : null}
+              {selectedCourse.teacher ? <Text style={styles.modalTeacher}>Enseignant : {selectedCourse.teacher}</Text> : null}
+              {selectedCourse.mediaUrl ? (
+                <Pressable accessibilityRole="button" onPress={() => Linking.openURL(selectedCourse.mediaUrl)} style={styles.mediaOpenButton}>
+                  <Text style={styles.mediaOpenButtonText}>{selectedCourse.mediaType === "video" ? "Voir la vidéo" : "Écouter le cours"}</Text>
+                </Pressable>
+              ) : null}
+              {selectedCourse.excerptUrl ? (
+                <Pressable accessibilityRole="button" onPress={() => Linking.openURL(selectedCourse.excerptUrl)} style={styles.mediaOpenButton}>
+                  <Text style={styles.mediaOpenButtonText}>Écouter un extrait</Text>
+                </Pressable>
+              ) : null}
               <Pressable
                 accessibilityRole="button"
                 onPress={() => toggleFavorite(selectedCourse.id)}
@@ -426,7 +689,7 @@ function Cours() {
               >
                 <Text style={styles.modalCloseText}>Fermer</Text>
               </Pressable>
-            </View>
+            </ScrollView>
           ) : null}
         </View>
       </Modal>
@@ -493,6 +756,32 @@ const styles = StyleSheet.create({
   intro: {
     marginBottom: 20,
   },
+  publishPanel: {
+    padding: 15,
+    marginBottom: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#E5DFCC",
+    backgroundColor: "#FFFFFF",
+  },
+  publishTitle: { color: "#183D32", fontSize: 15, fontWeight: "800" },
+  publishHint: { color: "#717A73", fontSize: 11, lineHeight: 16, marginTop: 5 },
+  publishButton: { minHeight: 42, alignItems: "center", justifyContent: "center", paddingHorizontal: 14, marginTop: 11, borderRadius: 10, backgroundColor: colors.green600 },
+  publishButtonText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
+  courseForm: { marginTop: 10 },
+  cancelEditButton: { alignItems: "center", padding: 10, marginTop: 5 },
+  cancelEditButtonText: { color: "#68746B", fontSize: 11, fontWeight: "700" },
+  formInput: { minHeight: 43, paddingHorizontal: 11, marginTop: 8, borderWidth: 1, borderColor: "#E8E5DA", borderRadius: 9, backgroundColor: "#FBFAF6", color: "#183D32", fontSize: 12 },
+  formTextArea: { minHeight: 115, paddingTop: 11 },
+  formLabel: { color: "#68746B", fontSize: 11, fontWeight: "700", marginTop: 12 },
+  mediaTypeRow: { flexDirection: "row", gap: 8, marginTop: 7 },
+  mediaTypeButton: { flex: 1, minHeight: 38, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#E8E5DA", borderRadius: 9 },
+  mediaTypeButtonSelected: { borderColor: colors.green600, backgroundColor: "#EAF1EB" },
+  mediaTypeText: { color: "#68746B", fontSize: 12, fontWeight: "700" },
+  mediaTypeTextSelected: { color: colors.green600 },
+  formError: { color: "#A6352C", fontSize: 11, lineHeight: 16, marginTop: 9 },
+  loadError: { color: "#A6352C", fontSize: 11, marginBottom: 14 },
+  courseLoader: { marginBottom: 15 },
   eyebrow: {
     color: "#B28B2E",
     fontSize: 10,
@@ -729,6 +1018,29 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 12,
   },
+  courseManageActions: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 8,
+  },
+  courseManageButton: {
+    minHeight: 32,
+    justifyContent: "center",
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: "#E8E5DA",
+    borderRadius: 8,
+  },
+  courseManageText: {
+    color: "#24483A",
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  courseDeleteText: {
+    color: "#A6352C",
+    fontSize: 10,
+    fontWeight: "700",
+  },
   courseMeta: {
     minHeight: 19,
     flexDirection: "row",
@@ -868,10 +1180,13 @@ const styles = StyleSheet.create({
   modalCard: {
     width: "100%",
     maxWidth: 420,
+    maxHeight: "88%",
     padding: 23,
     borderRadius: 22,
     backgroundColor: "#FFFFFF",
+    overflow: "hidden",
   },
+  modalCardContent: { padding: 23 },
   modalIcon: {
     width: 58,
     height: 58,
@@ -904,6 +1219,11 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginTop: 10,
   },
+  modalBook: { color: "#315243", fontSize: 12, fontWeight: "700", marginTop: 12 },
+  modalTeacher: { color: "#717A73", fontSize: 11, marginTop: 6 },
+  mediaOpenButton: { minHeight: 44, alignItems: "center", justifyContent: "center", marginTop: 16, borderRadius: 11, backgroundColor: colors.green600 },
+  mediaOpenButtonText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
+  lessonTextHeading: { color: "#183D32", fontSize: 13, fontWeight: "800", marginTop: 17 },
   modalMeta: {
     flexDirection: "row",
     alignItems: "center",

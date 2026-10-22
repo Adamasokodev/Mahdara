@@ -16,6 +16,21 @@ class User extends Authenticatable implements FilamentUser
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
+    public const ROLE_STUDENT = 'student';
+
+    public const ROLE_CHEIKH = 'cheikh';
+
+    public const ROLE_ASSISTANT = 'assistant';
+
+    public const ROLE_ADMIN = 'admin';
+
+    public const ROLE_OPTIONS = [
+        self::ROLE_STUDENT => 'Étudiant — Compte standard par défaut; cours, progression et téléchargements',
+        self::ROLE_CHEIKH => 'Cheikh — Enseignant rattaché à une mahdara; cours, statistiques et questions',
+        self::ROLE_ASSISTANT => 'Assistant — Aide technique; upload et organisation des cours au nom du cheikh',
+        self::ROLE_ADMIN => 'Administrateur — Équipe du projet; gestion complète via le panel web',
+    ];
+
     /**
      * The attributes that are mass assignable.
      *
@@ -27,6 +42,7 @@ class User extends Authenticatable implements FilamentUser
         'email',
         'telephone',
         'role',
+        'assistant_cheikh_id',
         'status',
         'password',
     ];
@@ -59,5 +75,15 @@ class User extends Authenticatable implements FilamentUser
         return $panel->getId() === 'admin'
             && $this->role === 'admin'
             && $this->status === 'active';
+    }
+
+    public function cheikh()
+    {
+        return $this->hasOne(Cheikh::class);
+    }
+
+    public function assistantCheikh()
+    {
+        return $this->belongsTo(Cheikh::class, 'assistant_cheikh_id');
     }
 }

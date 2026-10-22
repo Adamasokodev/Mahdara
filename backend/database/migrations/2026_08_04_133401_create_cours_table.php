@@ -14,13 +14,24 @@ return new class extends Migration
         Schema::create('cours', function (Blueprint $table) {
             $table->id();
             $table->string('titre');
-            $table->string('matiere');
-            $table->string('niveau'); // debutant, intermediaire, avance
-            $table->string('fichier_url');
-            $table->integer('duree_minutes')->nullable();
-            $table->foreignId('cheikh_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('mahdara_id')->constrained('mahdaras')->cascadeOnDelete();
+            $table->foreignId('matiere_id')->constrained('matieres')->restrictOnDelete();
+            $table->foreignId('cheikh_id')->constrained()->restrictOnDelete();
+            $table->foreignId('mahdara_id')->constrained('mahdaras')->restrictOnDelete();
+            $table->string('niveau')->default('debutant');
+            $table->string('fichier_path');
+            $table->text('description')->nullable();
+            $table->string('type')->default('audio');
+            $table->string('langue')->default('ar');
+            $table->unsignedInteger('duree_secondes')->nullable();
+            $table->unsignedBigInteger('taille_octets')->nullable();
+            $table->string('image_path')->nullable();
+            $table->string('statut')->default('brouillon');  // brouillon, publie
+            $table->unsignedInteger('nombre_ecoutes')->default(0);
+            $table->unsignedInteger('telechargements')->default(0);
+            $table->timestamp('publie_le')->nullable();
             $table->timestamps();
+
+            $table->index(['statut', 'publie_le']);
         });
     }
 

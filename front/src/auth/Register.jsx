@@ -195,7 +195,8 @@ function Register({ navigation }) {
             <Text style={styles.eyebrow}>SAVOIR & TRANSMISSION</Text>
             <Text style={styles.title}>Inscription</Text>
             <Text style={styles.subtitle}>
-              Créez votre espace et commencez votre parcours avec Mahdara.
+              Créez votre compte étudiant pour accéder aux cours. Les rôles de
+              cheikh, assistant et administrateur sont attribués par l’équipe.
             </Text>
           </View>
 

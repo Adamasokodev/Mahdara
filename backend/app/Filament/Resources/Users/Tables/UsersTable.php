@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Users\Tables;
 
+use App\Models\User;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -24,7 +25,17 @@ class UsersTable
                 TextColumn::make('telephone')
                     ->searchable(),
                 TextColumn::make('role')
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        User::ROLE_STUDENT => 'Étudiant',
+                        User::ROLE_CHEIKH => 'Cheikh',
+                        User::ROLE_ASSISTANT => 'Assistant',
+                        User::ROLE_ADMIN => 'Administrateur',
+                        default => $state,
+                    })
                     ->badge(),
+                TextColumn::make('assistantCheikh.user.name')
+                    ->label('Cheikh référent')
+                    ->toggleable(),
                 TextColumn::make('status')
                     ->badge(),
                 TextColumn::make('email_verified_at')

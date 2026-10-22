@@ -84,7 +84,8 @@ function Login({ navigation }) {
         );
       }
 
-      await signIn(result.token);
+      await signIn(result.token, result.user);
+      navigation.replace("App");
     } catch (err) {
       setError(
         err instanceof TypeError

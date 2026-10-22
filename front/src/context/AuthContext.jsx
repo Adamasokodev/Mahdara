@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../config/api";
 
@@ -7,6 +6,7 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Au lancement : on récupère le token sauvegardé
@@ -14,16 +14,39 @@ export function AuthProvider({ children }) {
     (async () => {
       try {
         const saved = await AsyncStorage.getItem("token");
-        if (saved) setToken(saved);
+        if (saved) {
+          setToken(saved);
+          fetch(`${API_URL}/user`, {
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${saved}`,
+            },
+          })
+            .then(async (response) => {
+              if (response.status === 401) {
+                await AsyncStorage.removeItem("token");
+                setToken(null);
+                return;
+              }
+              if (!response.ok) {
+                throw new Error(`Le profil n’a pas pu être chargé (erreur ${response.status}).`);
+              }
+              setUser(await response.json());
+            })
+            .catch((error) => {
+              console.error("Chargement du profil connecté impossible.", error);
+            });
+        }
       } finally {
         setLoading(false);
       }
     })();
   }, []);
 
-  const signIn = async (newToken) => {
+  const signIn = async (newToken, newUser) => {
     await AsyncStorage.setItem("token", newToken);
     setToken(newToken);
+    setUser(newUser);
   };
 
   const signOut = async () => {
@@ -57,6 +80,7 @@ export function AuthProvider({ children }) {
 
     await AsyncStorage.removeItem("token");
     setToken(null);
+    setUser(null);
 
     if (logoutError) {
       throw logoutError;
@@ -64,7 +88,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ token, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ token, user, loading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

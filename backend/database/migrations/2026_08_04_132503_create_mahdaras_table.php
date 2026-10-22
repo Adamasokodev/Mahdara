@@ -17,7 +17,9 @@ return new class extends Migration
             $table->string('wilaya');
             $table->string('localisation')->nullable();
             $table->text('description')->nullable();
+            $table->boolean('actif')->default(true);
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

@@ -59,7 +59,7 @@ function AppTabs() {
 }
 
 function RootNavigator() {
-  const { token, loading } = useAuth();
+  const { loading } = useAuth();
 
   if (loading) {
     return (
@@ -70,15 +70,10 @@ function RootNavigator() {
   }
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {token ? (
-        <Stack.Screen name="App" component={AppTabs} />
-      ) : (
-        <>
-          <Stack.Screen name="Login" component={Login} />
-          <Stack.Screen name="Register" component={Register} />
-        </>
-      )}
+    <Stack.Navigator initialRouteName="App" screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="App" component={AppTabs} />
+      <Stack.Screen name="Login" component={Login} />
+      <Stack.Screen name="Register" component={Register} />
     </Stack.Navigator>
   );
 }
