@@ -7,6 +7,8 @@ import { AuthProvider, useAuth } from "./src/context/AuthContext";
 import Login from "./src/auth/Login";
 import Register from "./src/auth/Register";
 import Cours from "./src/screen/Cours";
+import CoursDetail from "./src/screen/CoursDetail";
+import Bibliotheque from "./src/screen/Bibliotheque";
 import Coran from "./src/screen/Coran";
 import Home from "./src/screen/Home";
 import Mahadra from "./src/screen/Mahadra";
@@ -18,6 +20,7 @@ const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 const icons = {
+  Bibliothèque: "▤",
   Accueil: "⌂",
   Cours: "▤",
   Coran: "۞",
@@ -50,6 +53,7 @@ function AppTabs() {
     >
       <Tab.Screen name="Accueil" component={Home} />
       <Tab.Screen name="Cours" component={Cours} />
+      <Tab.Screen name="Bibliothèque" component={Bibliotheque} options={{ tabBarLabel: "Biblio" }} />
       <Tab.Screen name="Coran" component={Coran} />
       <Tab.Screen name="Quiz" component={Quiz} />
       <Tab.Screen name="Mahadra" component={Mahadra} />
@@ -74,6 +78,7 @@ function RootNavigator() {
       <Stack.Screen name="App" component={AppTabs} />
       <Stack.Screen name="Login" component={Login} />
       <Stack.Screen name="Register" component={Register} />
+      <Stack.Screen name="CourseDetail" component={CoursDetail} options={{ animation: "slide_from_right" }} />
     </Stack.Navigator>
   );
 }

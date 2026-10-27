@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   ImageBackground,
   Pressable,
@@ -11,49 +12,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
+import { useFocusEffect } from "@react-navigation/native";
 import colors from "../theme/colors";
 import { useAuth } from "../context/AuthContext";
-
-const categories = ["Tout", "Fiqh", "Coran", "Langue arabe", "Seerah"];
-
-const courses = [
-  {
-    id: "fiqh",
-    category: "Fiqh",
-    title: "Mukhtasar Khalil : Introduction",
-    teacher: "Cheikh Abdallah bin Bayyah",
-    duration: "12 semaines",
-    image:
-      "https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=1000&q=80",
-  },
-  {
-    id: "nahw",
-    category: "Langue arabe",
-    title: "Al-Ajurrumiyya : les bases de la grammaire",
-    teacher: "Cheikh Muhammad Al-Hasan",
-    duration: "8 semaines",
-    image:
-      "https://images.unsplash.com/photo-1516979187457-637abb4f9353?auto=format&fit=crop&w=1000&q=80",
-  },
-  {
-    id: "coran",
-    category: "Coran",
-    title: "Les bases de la récitation",
-    teacher: "Cheikhs de la Mahdara",
-    duration: "6 semaines",
-    image:
-      "https://images.unsplash.com/photo-1519682337058-a94d519337bc?auto=format&fit=crop&w=1000&q=80",
-  },
-  {
-    id: "seerah",
-    category: "Seerah",
-    title: "Vie du Prophète (PSL)",
-    teacher: "Dr Salih Al-Munajjid",
-    duration: "16 semaines",
-    image:
-      "https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=1000&q=80",
-  },
-];
+import { API_URL } from "../config/api";
 
 const mahdaras = [
   { name: "Mahadra de Nouakchott", location: "Nouakchott · Tevragh Zeina" },
@@ -62,9 +24,45 @@ const mahdaras = [
 ];
 
 function Home({ navigation }) {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  const [courses, setCourses] = useState([]);
+  const [loadingCourses, setLoadingCourses] = useState(true);
+  const [coursesError, setCoursesError] = useState("");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("Tout");
+
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    setLoadingCourses(true);
+    setCoursesError("");
+    fetch(`${API_URL}/cours`, {
+      headers: {
+        Accept: "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    })
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error("Cours indisponibles")))
+      .then((data) => {
+        if (!active) return;
+        const items = (Array.isArray(data) ? data : []).map((course) => ({
+          ...course,
+          category: course.matiere || "Autre",
+          title: course.titre,
+          teacher: [course.cheikh?.user?.prenom, course.cheikh?.user?.name].filter(Boolean).join(" ") || "Cheikh de la Mahdara",
+          duration: course.duree_minutes ? `${course.duree_minutes} min` : "Durée non précisée",
+          level: course.niveau || "",
+          image: course.image_url || null,
+          icon: course.type_media === "video" ? "▶" : "♫",
+        }));
+        setCourses(items.sort((left, right) => Number(right.id) - Number(left.id)));
+      })
+      .catch(() => { if (active) setCoursesError("Les cours ne sont pas accessibles pour le moment."); })
+      .finally(() => { if (active) setLoadingCourses(false); });
+
+    return () => { active = false; };
+  }, [token]));
+
+  const categories = useMemo(() => ["Tout", ...new Set(courses.map((course) => course.category).filter(Boolean))], [courses]);
 
   const visibleCourses = useMemo(() => {
     const term = search.trim().toLocaleLowerCase("fr");
@@ -78,7 +76,7 @@ function Home({ navigation }) {
           .includes(term);
       return matchesCategory && matchesSearch;
     });
-  }, [category, search]);
+  }, [courses, category, search]);
   const visibleMahdaras = useMemo(() => {
     const term = search.trim().toLocaleLowerCase("fr");
     if (!term) return [];
@@ -119,7 +117,7 @@ function Home({ navigation }) {
         </View>
 
         <Text style={styles.welcome}>Assalamu alaykum 👋</Text>
-        <Text style={styles.welcomeSubtitle}>Que souhaitez-vous apprendre aujourd’hui ?</Text>
+        <Text style={styles.welcomeSubtitle}>Un foyer numérique pour apprendre et transmettre les savoirs d’Afrique de l’Ouest.</Text>
 
         <Pressable
           accessibilityRole="button"
@@ -130,6 +128,19 @@ function Home({ navigation }) {
           <View style={styles.quranShortcutCopy}>
             <Text style={styles.quranShortcutTitle}>Lire & écouter le Coran</Text>
             <Text style={styles.quranShortcutSubtitle}>Texte arabe · Récitation audio</Text>
+          </View>
+          <Text style={styles.quranShortcutArrow}>›</Text>
+        </Pressable>
+
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => navigation.navigate("Bibliothèque")}
+          style={({ pressed }) => [styles.libraryShortcut, pressed && styles.pressed]}
+        >
+          <View style={styles.libraryShortcutIcon}><Text style={styles.libraryShortcutGlyph}>▤</Text></View>
+          <View style={styles.quranShortcutCopy}>
+            <Text style={styles.quranShortcutTitle}>Livres, poèmes et patrimoine</Text>
+            <Text style={styles.quranShortcutSubtitle}>Explorer la bibliothèque ouest-africaine</Text>
           </View>
           <Text style={styles.quranShortcutArrow}>›</Text>
         </Pressable>
@@ -248,14 +259,15 @@ function Home({ navigation }) {
           <Pressable
             key={course.id}
             accessibilityRole="button"
-            onPress={() => navigation.navigate("Cours")}
+            onPress={() => navigation.navigate("Cours", { matiereId: course.matiere_id, matiereNom: course.category })}
             style={({ pressed }) => [styles.courseCard, pressed && styles.pressed]}
           >
-            <ImageBackground source={{ uri: course.image }} style={styles.courseImage} imageStyle={styles.courseImageCorners}>
+            <ImageBackground source={course.image ? { uri: course.image } : undefined} style={[styles.courseImage, !course.image && styles.courseImageFallback]} imageStyle={styles.courseImageCorners}>
               <View style={styles.imageShade} />
               <Text style={styles.categoryBadge}>{course.category}</Text>
+              {!course.image ? <Text style={styles.courseFallbackIcon}>{course.icon}</Text> : null}
               <View style={styles.newBadge}>
-                <Text style={styles.newBadgeText}>Nouveau</Text>
+                <Text style={styles.newBadgeText}>Disponible</Text>
               </View>
             </ImageBackground>
             <View style={styles.courseCopy}>
@@ -263,12 +275,16 @@ function Home({ navigation }) {
               <Text style={styles.teacher}>{course.teacher}</Text>
               <View style={styles.courseMetaRow}>
                 <Text style={styles.courseMeta}>◷  {course.duration}</Text>
-                <Text style={styles.levelBadge}>Débutant</Text>
+                {course.level ? <Text style={styles.levelBadge}>{course.level}</Text> : null}
                 <Text style={styles.courseArrow}>↗</Text>
               </View>
             </View>
           </Pressable>
-        )) : (
+        )) : loadingCourses ? (
+          <ActivityIndicator color={colors.green600} style={styles.loadingCourses} />
+        ) : coursesError ? (
+          <Text style={styles.noResults}>{coursesError}</Text>
+        ) : (
           <Text style={styles.noResults}>Aucun cours ne correspond à votre recherche.</Text>
         )}
 
@@ -355,6 +371,9 @@ const styles = StyleSheet.create({
   quranShortcutTitle: { color: colors.neutral900, fontSize: 13, fontWeight: "800" },
   quranShortcutSubtitle: { color: "#77847B", fontSize: 10, marginTop: 4 },
   quranShortcutArrow: { color: colors.green600, fontSize: 24, marginLeft: 6 },
+  libraryShortcut: { minHeight: 68, flexDirection: "row", alignItems: "center", paddingHorizontal: 12, borderRadius: 15, backgroundColor: "#FBF7EF", borderWidth: 1, borderColor: "#EFE5D2", marginBottom: 17 },
+  libraryShortcutIcon: { width: 42, height: 42, alignItems: "center", justifyContent: "center", borderRadius: 13, backgroundColor: "#FFFFFF", marginRight: 11 },
+  libraryShortcutGlyph: { color: "#A47C35", fontSize: 22 },
   searchBox: { height: 48, flexDirection: "row", alignItems: "center", paddingHorizontal: 13, borderRadius: 13, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E9E8E1", marginBottom: 22 },
   searchIcon: { color: "#758078", fontSize: 24, marginRight: 8 },
   searchInput: { flex: 1, color: "#26342C", fontSize: 13, paddingVertical: 0 },
@@ -385,7 +404,9 @@ const styles = StyleSheet.create({
   courseCard: { overflow: "hidden", borderRadius: 16, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E8E7E0", marginBottom: 13 },
   pressed: { opacity: 0.88 },
   courseImage: { height: 145, justifyContent: "flex-end", backgroundColor: "#B9AD98" },
+  courseImageFallback: { backgroundColor: "#DCEBE3", alignItems: "center" },
   courseImageCorners: { borderTopLeftRadius: 15, borderTopRightRadius: 15 },
+  courseFallbackIcon: { position: "absolute", alignSelf: "center", color: "#174838", fontSize: 58, opacity: 0.8 },
   imageShade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(18, 28, 21, 0.25)" },
   categoryBadge: { alignSelf: "flex-start", overflow: "hidden", margin: 11, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, color: "#FFFFFF", backgroundColor: colors.green600, fontSize: 11, fontWeight: "800" },
   newBadge: { position: "absolute", top: 11, right: 11, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 8, backgroundColor: colors.gold50 },
@@ -398,6 +419,7 @@ const styles = StyleSheet.create({
   levelBadge: { overflow: "hidden", color: "#B57B4A", backgroundColor: "#F9EFE5", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4, fontSize: 10, marginLeft: "auto" },
   courseArrow: { color: "#FFFFFF", backgroundColor: "#174838", overflow: "hidden", textAlign: "center", textAlignVertical: "center", width: 28, height: 28, borderRadius: 15, fontSize: 16, marginLeft: 9 },
   noResults: { color: "#768178", textAlign: "center", padding: 18 },
+  loadingCourses: { padding: 24 },
   searchMahdaras: { marginTop: 2, marginBottom: 15 },
   searchMahdarasTitle: { color: "#203B2F", fontSize: 14, fontWeight: "800", marginBottom: 8 },
   searchMahdaraRow: { minHeight: 56, flexDirection: "row", alignItems: "center", paddingHorizontal: 12, borderRadius: 12, backgroundColor: "#FFFFFF", marginBottom: 7 },

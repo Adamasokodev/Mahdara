@@ -60,4 +60,9 @@ class Cours extends Model
     {
         return $this->hasMany(Progression::class);
     }
+
+    public function parties()
+    {
+        return $this->hasMany(PartieCours::class, 'cours_id')->orderBy('ordre')->orderBy('id');
+    }
 }

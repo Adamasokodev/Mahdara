@@ -25,5 +25,5 @@
 
   <!-- Nom de la plateforme -->
   <text x="340" y="285" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" font-weight="500" fill="#0B3D2E" letter-spacing="1">Mahdara</text>
-  <text x="340" y="311" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#5F5E5A" letter-spacing="2">القرآن الكريم · العلوم الشرعية</text>
+  <text x="340" y="311" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#5F5E5A" letter-spacing="1.5">SAVOIR ISLAMIQUE &amp; ENSEIGNEMENT TRADITIONNEL</text>
 </svg>

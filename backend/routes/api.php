@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\CheikhController;
 use App\Http\Controllers\Api\CoursController;
 use App\Http\Controllers\Api\MahdaraController;
 use App\Http\Controllers\Api\MatiereController;
+use App\Http\Controllers\Api\OeuvreController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -26,7 +27,9 @@ Route::get('/me', [AuthController::class, 'me'])->name('me');
 Route::get('/cheikh', [CheikhController::class, 'index'])->name('cheikh.index');
 Route::get('/mahdara', [MahdaraController::class, 'index'])->name('mahdara.index');
 Route::get('/matiere', [MatiereController::class, 'index'])->name('matiere.index');
+Route::get('/oeuvres', [OeuvreController::class, 'index'])->name('oeuvres.index');
 Route::get('/cours', [CoursController::class, 'index'])->name('cours.index');
+Route::get('/cours/{cours}/parties', [CoursController::class, 'parts'])->name('cours.parts');
 Route::get('/cours/{cours}', [CoursController::class, 'show'])->name('cours.show');
 Route::get('/cheikh/{cheikh}', [CheikhController::class, 'show'])->name('cheikh.show');
 Route::get('/mahdara/{mahdara}', [MahdaraController::class, 'show'])->name('mahdara.show');
@@ -34,6 +37,11 @@ Route::get('/matiere/{matiere}', [MatiereController::class, 'show'])->name('mati
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+    Route::post('/cours/{cours}/ecoute', [CoursController::class, 'trackListen'])->name('cours.listen');
+    Route::post('/cours/{cours}/telechargement', [CoursController::class, 'download'])->name('cours.download');
+    Route::post('/cours/{cours}/parties/{partie}/ecoute', [CoursController::class, 'trackPartListen'])->name('cours.parties.listen');
+    Route::post('/cours/{cours}/parties/{partie}/telechargement', [CoursController::class, 'downloadPart'])->name('cours.parties.download');
 
     Route::post('/cheikh', [CheikhController::class, 'store'])->middleware('role:admin')->name('cheikh.store');
 

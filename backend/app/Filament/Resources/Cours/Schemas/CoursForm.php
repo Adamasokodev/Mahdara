@@ -100,11 +100,12 @@ class CoursForm
                         Select::make('statut')
                             ->label('Publication')
                             ->options(['brouillon' => 'Brouillon', 'publie' => 'Publié'])
-                            ->default('brouillon')
+                            ->default('publie')
                             ->required()
                             ->live(),
                         DateTimePicker::make('publie_le')
                             ->label('Date de publication')
+                            ->default(now())
                             ->visible(fn (Get $get): bool => $get('statut') === 'publie'),
                         Textarea::make('description')
                             ->label('Description')

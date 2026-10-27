@@ -20,6 +20,19 @@ import colors from "../theme/colors";
 const TEXT_API_ROOT = "https://api.alquran.cloud/v1";
 const MP3QURAN_API_ROOT = "https://www.mp3quran.net/api/v3";
 const PLAYBACK_RATES = [0.75, 1, 1.5];
+const RIWAYAT = ["Toutes", "Warsh", "Hafs", "Qaloun"];
+
+function matchesRiwaya(moshaf, riwaya) {
+  if (riwaya === "Toutes") return true;
+  const name = [moshaf?.name, moshaf?.riwaya, moshaf?.rewaya].filter(Boolean).join(" ").toLocaleLowerCase("fr")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const patterns = {
+    Warsh: ["warsh", "ورش"],
+    Hafs: ["hafs", "حفص"],
+    Qaloun: ["qaloun", "qalun", "qalon", "قالون"],
+  };
+  return (patterns[riwaya] || []).some((pattern) => name.includes(pattern));
+}
 
 async function fetchJson(url, signal) {
   const response = await fetch(url, { signal });
@@ -29,8 +42,8 @@ async function fetchJson(url, signal) {
   return response.json();
 }
 
-function getPreferredMoshaf(reciter) {
-  return reciter?.moshaf?.reduce((preferred, current) => (
+function getPreferredMoshaf(reciter, riwaya = "Toutes") {
+  return reciter?.moshaf?.filter((moshaf) => matchesRiwaya(moshaf, riwaya)).reduce((preferred, current) => (
     !preferred || current.surah_total > preferred.surah_total ? current : preferred
   ), null) ?? null;
 }
@@ -49,6 +62,7 @@ function Coran() {
   const [reciterSearch, setReciterSearch] = useState("");
   const [selectedReciterId, setSelectedReciterId] = useState(123);
   const [selectedMoshafId, setSelectedMoshafId] = useState(null);
+  const [selectedRiwaya, setSelectedRiwaya] = useState("Toutes");
   const [selectedSurah, setSelectedSurah] = useState(1);
   const [ayahs, setAyahs] = useState([]);
   const [loadingSurahs, setLoadingSurahs] = useState(true);
@@ -112,19 +126,21 @@ function Coran() {
     return () => controller.abort();
   }, [language]);
 
-  const selectedReciter = reciters.find((reciter) => reciter.id === selectedReciterId)
-    || reciters[0]
+  const riwayaReciters = reciters.filter((reciter) => reciter.moshaf?.some((moshaf) => matchesRiwaya(moshaf, selectedRiwaya)));
+  const selectedReciter = riwayaReciters.find((reciter) => reciter.id === selectedReciterId)
+    || riwayaReciters[0]
     || null;
-  const selectedMoshaf = selectedReciter?.moshaf?.find(
+  const selectedRiwayaMoshafs = selectedReciter?.moshaf?.filter((moshaf) => matchesRiwaya(moshaf, selectedRiwaya)) || [];
+  const selectedMoshaf = selectedRiwayaMoshafs.find(
     (moshaf) => moshaf.id === selectedMoshafId
-  ) || getPreferredMoshaf(selectedReciter);
+  ) || getPreferredMoshaf(selectedReciter, selectedRiwaya);
   const availableSurahIds = new Set(
     (selectedMoshaf?.surah_list || "")
       .split(",")
       .map((surahId) => Number(surahId))
       .filter(Number.isFinite)
   );
-  const filteredReciters = reciters.filter((reciter) => (
+  const filteredReciters = riwayaReciters.filter((reciter) => (
     reciter.name.toLocaleLowerCase().includes(reciterSearch.trim().toLocaleLowerCase())
   ));
 
@@ -241,6 +257,26 @@ function Coran() {
             ))}
           </View>
         </View>
+        <Text style={styles.rewayaLabel}>Riwaya / transmission</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.surahList}>
+          {RIWAYAT.map((riwaya) => {
+            const selected = riwaya === selectedRiwaya;
+            return (
+              <Pressable
+                key={riwaya}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                onPress={() => setSelectedRiwaya(riwaya)}
+                style={[styles.rewayaChip, selected && styles.surahChipSelected]}
+              >
+                <Text style={[styles.reciterChipText, selected && styles.surahNameSelected]}>{riwaya}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+        {!loadingCatalog && selectedRiwaya !== "Toutes" && riwayaReciters.length === 0 ? (
+          <Text style={styles.variantHint}>Cette riwaya n’est pas encore proposée par le catalogue de récitations.</Text>
+        ) : null}
         {loadingCatalog ? (
           <ActivityIndicator color={colors.green600} style={styles.loader} />
         ) : (
@@ -263,7 +299,7 @@ function Coran() {
                     accessibilityState={{ selected }}
                     onPress={() => {
                       setSelectedReciterId(reciter.id);
-                      setSelectedMoshafId(getPreferredMoshaf(reciter)?.id ?? null);
+                      setSelectedMoshafId(getPreferredMoshaf(reciter, selectedRiwaya)?.id ?? null);
                     }}
                     style={[styles.reciterChip, selected && styles.surahChipSelected]}
                   >
@@ -445,6 +481,7 @@ const styles = StyleSheet.create({
   reciterChipText: { color: "#34453A", fontSize: 10, fontWeight: "700" },
   emptyReciters: { color: "#78817A", fontSize: 11, paddingVertical: 12 },
   rewayaLabel: { color: "#78817A", fontSize: 10, fontWeight: "700", marginTop: 2, marginBottom: 7 },
+  variantHint: { color: "#A1783A", fontSize: 11, lineHeight: 16, marginBottom: 10 },
   rewayaChip: { maxWidth: 250, minHeight: 34, justifyContent: "center", paddingHorizontal: 11, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: "#E7E9E3", backgroundColor: "#FFFFFF" },
   surahHeading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
   sectionTitle: { color: colors.neutral900, fontSize: 15, fontWeight: "800" },
