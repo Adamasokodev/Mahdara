@@ -82,6 +82,18 @@ class CoursController extends Controller
         ], 201);
     }
 
+    public function uploadAudio(Request $request)
+    {
+        $this->managedCheikh($request->user());
+        $validated = $request->validate([
+            'audio' => 'required|file|mimetypes:audio/mpeg,audio/mp3,audio/mp4,audio/x-m4a,audio/webm,audio/ogg,audio/wav|max:102400',
+        ]);
+
+        $path = $validated['audio']->store('cours/audio', 'public');
+
+        return response()->json(['path' => $path, 'url' => Storage::disk('public')->url($path)], 201);
+    }
+
     public function update(Request $request, Cours $cours)
     {
         $cheikh = $this->authorizeCourseManagement($request->user(), $cours);
@@ -237,14 +249,14 @@ class CoursController extends Controller
 
     private function courseData(Cours $cours, ?User $user): array
     {
-        $hasContentAccess = $user
+        $hasContentAccess = ($cours->statut === 'publie' && $cours->publie_le && $cours->publie_le->isPast()) || ($user
             && in_array($user->role, [
                 User::ROLE_STUDENT,
                 User::ROLE_ADMIN,
                 User::ROLE_CHEIKH,
                 User::ROLE_ASSISTANT,
             ], true)
-            && $user->status === 'active';
+            && $user->status === 'active');
         $filePath = $cours->fichier_path;
         $fileUrl = $filePath && Str::startsWith($filePath, ['http://', 'https://'])
             ? $filePath

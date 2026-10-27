@@ -52,6 +52,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/cheikh/{cheikh}', [CheikhController::class, 'destroy'])->middleware('role:admin')->name('cheikh.destroy');
 
     Route::post('/cours', [CoursController::class, 'store'])->middleware('role:cheikh,assistant')->name('cours.store');
+    Route::post('/cours/audio', [CoursController::class, 'uploadAudio'])->middleware('role:cheikh,assistant')->name('cours.audio');
     Route::put('/cours/{cours}', [CoursController::class, 'update'])->middleware('role:cheikh,assistant')->name('cours.update');
     Route::patch('/cours/{cours}', [CoursController::class, 'update'])->middleware('role:cheikh,assistant')->name('cours.patch');
     Route::delete('/cours/{cours}', [CoursController::class, 'destroy'])->middleware('role:cheikh,assistant')->name('cours.destroy');

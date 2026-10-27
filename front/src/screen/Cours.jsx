@@ -12,13 +12,14 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioPlayer, useAudioRecorder, useAudioRecorderState } from "expo-audio";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import colors from "../theme/colors";
 import { useAuth } from "../context/AuthContext";
 import { API_URL } from "../config/api";
 
-const categories = ["Tout", "Le Coran", "Langue arabe", "Sciences islamiques"];
+const categories = ["Tout"];
 
 const courses = [
   {
@@ -94,7 +95,7 @@ const toPublishedCourse = (course) => ({
   serverId: course.id,
   title: course.titre,
   category: course.matiere,
-  description: course.contenu || "",
+  description: course.contenu || course.description || "",
   level: course.niveau,
   duration: course.duree_minutes,
   book: course.livre,
@@ -125,6 +126,13 @@ function Cours() {
   const [favorites, setFavorites] = useState([]);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
+  const [recordedUri, setRecordedUri] = useState(null);
+  const [recordedDuration, setRecordedDuration] = useState(0);
+  const [recordingError, setRecordingError] = useState("");
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorderState = useAudioRecorderState(recorder);
+  const audioPlayer = useAudioPlayer(selectedCourse?.mediaUrl || null);
+  const recordingPlayer = useAudioPlayer(recordedUri || null);
 
   useEffect(() => {
     let active = true;
@@ -161,14 +169,15 @@ function Cours() {
     return () => { active = false; };
   }, [token]);
 
-  const allCourses = useMemo(() => [...courses, ...publishedCourses], [publishedCourses]);
+  const allCourses = useMemo(() => publishedCourses, [publishedCourses]);
+  const courseCategories = useMemo(() => ["Tout", ...new Set(publishedCourses.map((course) => course.category).filter(Boolean))], [publishedCourses]);
 
   const filteredCourses = useMemo(() => {
     const normalizedSearch = search.trim().toLocaleLowerCase("fr");
 
     return allCourses.filter((course) => {
       const matchesCategory =
-        selectedCategory === "Tout" || course.category === selectedCategory;
+      selectedCategory === "Tout" || course.category === selectedCategory;
       const matchesSearch =
         !normalizedSearch ||
         `${course.title} ${course.category} ${course.level} ${course.book || ""}`
@@ -183,8 +192,72 @@ function Cours() {
 
   const updateDraft = (key, value) => setDraft((current) => ({ ...current, [key]: value }));
 
+  const toggleRecording = async () => {
+    setRecordingError("");
+    try {
+      if (recorderState.isRecording) {
+        await recorder.stop();
+        setRecordedUri(recorder.uri);
+        setRecordedDuration(recorderState.durationMillis || 0);
+        return;
+      }
+      const permission = await AudioModule.requestRecordingPermissionsAsync();
+      if (!permission.granted) throw new Error("L’accès au microphone est nécessaire pour enregistrer le cours.");
+      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true, interruptionMode: "doNotMix" });
+      await recorder.prepareToRecordAsync({
+        ...RecordingPresets.HIGH_QUALITY,
+        numberOfChannels: 1,
+        bitRate: 64000,
+      });
+      recorder.record();
+      setRecordedUri(null);
+      updateDraft("fichier_url", "");
+    } catch (error) {
+      const reason = error?.cause?.message || error?.message || "Erreur audio";
+      setRecordingError(`L’enregistreur n’a pas pu démarrer. Vérifiez l’autorisation du microphone dans les réglages du téléphone, puis réessayez. (${reason})`);
+    }
+  };
+
+  const discardRecording = async () => {
+    if (recorderState.isRecording) await recorder.stop();
+    recordingPlayer.pause();
+    setRecordedUri(null);
+    setRecordedDuration(0);
+    setRecordingError("");
+  };
+
+  const uploadRecording = async () => {
+    if (!recordedUri) return null;
+    const form = new FormData();
+    if (typeof window !== "undefined" && recordedUri.startsWith("blob:")) {
+      const blob = await (await fetch(recordedUri)).blob();
+      form.append("audio", blob, "cours.webm");
+    } else {
+      form.append("audio", { uri: recordedUri, name: "cours.m4a", type: "audio/mp4" });
+    }
+    const result = await new Promise((resolve, reject) => {
+      const request = new XMLHttpRequest();
+      request.open("POST", `${API_URL}/cours/audio`);
+      request.setRequestHeader("Accept", "application/json");
+      request.setRequestHeader("Authorization", `Bearer ${token}`);
+      request.onload = () => {
+        let payload = {};
+        try { payload = JSON.parse(request.responseText || "{}"); } catch {}
+        if (request.status >= 200 && request.status < 300) resolve(payload);
+        else reject(new Error(payload.errors ? Object.values(payload.errors).flat()[0] : payload.message || "L’enregistrement n’a pas pu être envoyé."));
+      };
+      request.onerror = () => reject(new Error(`Impossible de joindre l’API (${API_URL}/cours/audio). Vérifiez que le téléphone et l’ordinateur sont connectés au même réseau et que Laravel est démarré.`));
+      request.send(form);
+    });
+    return result.path;
+  };
+
   const publishCourse = async () => {
     setCourseError("");
+    if (!draft.contenu.trim()) {
+      setCourseError("Ajoutez le texte du cours pour accompagner le vocal.");
+      return;
+    }
     setSavingCourse(true);
     try {
       const response = await fetch(
@@ -194,6 +267,7 @@ function Cours() {
           headers: { Accept: "application/json", "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({
             ...draft,
+            fichier_url: await uploadRecording() || draft.fichier_url,
             duree_minutes: draft.duree_minutes ? Number(draft.duree_minutes) : null,
           }),
         },
@@ -210,6 +284,8 @@ function Cours() {
         : [updatedCourse, ...current]);
       setDraft({ titre: "", matiere: "", livre: "", contenu: "", type_media: "audio", fichier_url: "", extrait_url: "", niveau: "Débutant", duree_minutes: "" });
       setEditingCourseId(null);
+      setRecordedUri(null);
+      setRecordedDuration(0);
       setShowCourseForm(false);
     } catch (error) {
       setCourseError(error.message || "Une erreur est survenue lors de la publication.");
@@ -232,6 +308,8 @@ function Cours() {
       duree_minutes: course.duration ? String(course.duration) : "",
     });
     setEditingCourseId(course.serverId);
+    setRecordedUri(null);
+    setRecordedDuration(0);
     setShowCourseForm(true);
   };
 
@@ -348,14 +426,36 @@ function Cours() {
                 <Text style={styles.formLabel}>Type de support</Text>
                 <View style={styles.mediaTypeRow}>
                   {["audio", "video"].map((type) => (
-                    <Pressable key={type} onPress={() => updateDraft("type_media", type)} style={[styles.mediaTypeButton, draft.type_media === type && styles.mediaTypeButtonSelected]}>
+                    <Pressable key={type} onPress={() => { updateDraft("type_media", type); if (type === "video") { setRecordedUri(null); setRecordedDuration(0); } }} style={[styles.mediaTypeButton, draft.type_media === type && styles.mediaTypeButtonSelected]}>
                       <Text style={[styles.mediaTypeText, draft.type_media === type && styles.mediaTypeTextSelected]}>{type === "audio" ? "Audio" : "Vidéo"}</Text>
                     </Pressable>
                   ))}
                 </View>
                 <TextInput placeholder="Lien public vers l'audio ou la vidéo (https://…)" autoCapitalize="none" keyboardType="url" value={draft.fichier_url} onChangeText={(value) => updateDraft("fichier_url", value)} style={styles.formInput} />
+                {draft.type_media === "audio" ? (
+                  <View style={styles.recordingBox}>
+                    <Text style={styles.formLabel}>Ou enregistrez le cours ici</Text>
+                    <Pressable onPress={toggleRecording} style={[styles.mediaOpenButton, recorderState.isRecording && styles.recordingActive]}>
+                      <Text style={styles.mediaOpenButtonText}>{recorderState.isRecording ? "■ Arrêter l’enregistrement" : "● Enregistrer un vocal"}</Text>
+                    </Pressable>
+                    {recordedUri ? (
+                      <View style={styles.recordingActions}>
+                        <Text style={styles.recordingReady}>Vocal prêt · {Math.floor(recordedDuration / 1000)} s</Text>
+                        <View style={styles.mediaTypeRow}>
+                          <Pressable onPress={() => recordingPlayer.playing ? recordingPlayer.pause() : recordingPlayer.play()} style={[styles.mediaTypeButton, styles.previewButton]}>
+                            <Text style={styles.mediaTypeText}>{recordingPlayer.playing ? "Pause" : "▶ Écouter"}</Text>
+                          </Pressable>
+                          <Pressable onPress={discardRecording} style={[styles.mediaTypeButton, styles.discardButton]}>
+                            <Text style={styles.discardText}>Supprimer / refaire</Text>
+                          </Pressable>
+                        </View>
+                      </View>
+                    ) : null}
+                    {recordingError ? <Text style={styles.formError}>{recordingError}</Text> : null}
+                  </View>
+                ) : null}
                 <TextInput placeholder="Lien audio d’extrait pour les visiteurs (facultatif)" autoCapitalize="none" keyboardType="url" value={draft.extrait_url} onChangeText={(value) => updateDraft("extrait_url", value)} style={styles.formInput} />
-                <TextInput placeholder="Texte du cours, notes ou passage à mémoriser" multiline textAlignVertical="top" value={draft.contenu} onChangeText={(value) => updateDraft("contenu", value)} style={[styles.formInput, styles.formTextArea]} />
+                <TextInput placeholder="Texte du cours à afficher avec le vocal (obligatoire)" multiline textAlignVertical="top" value={draft.contenu} onChangeText={(value) => updateDraft("contenu", value)} style={[styles.formInput, styles.formTextArea]} />
                 {courseError ? <Text style={styles.formError}>{courseError}</Text> : null}
                 <Pressable disabled={savingCourse} onPress={publishCourse} style={[styles.publishButton, savingCourse && styles.buttonPressed]}>
                   {savingCourse ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.publishButtonText}>{editingCourseId ? "Enregistrer les modifications" : "Publier le cours"}</Text>}
@@ -456,7 +556,7 @@ function Cours() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoryList}
         >
-          {categories.map((category) => {
+          {courseCategories.map((category) => {
             const isSelected = selectedCategory === category;
 
             return (
@@ -640,7 +740,7 @@ function Cours() {
                 {selectedCourse.category.toLocaleUpperCase("fr")}
               </Text>
               <Text style={styles.modalTitle}>{selectedCourse.title}</Text>
-              {selectedCourse.book ? <Text style={styles.lessonTextHeading}>Texte pour étudier et mémoriser</Text> : null}
+              {selectedCourse.description ? <Text style={styles.lessonTextHeading}>Texte du cours</Text> : null}
               <Text style={styles.modalDescription}>
                 {selectedCourse.description}
               </Text>
@@ -656,8 +756,8 @@ function Cours() {
               {selectedCourse.book ? <Text style={styles.modalBook}>Livre étudié : {selectedCourse.book}</Text> : null}
               {selectedCourse.teacher ? <Text style={styles.modalTeacher}>Enseignant : {selectedCourse.teacher}</Text> : null}
               {selectedCourse.mediaUrl ? (
-                <Pressable accessibilityRole="button" onPress={() => Linking.openURL(selectedCourse.mediaUrl)} style={styles.mediaOpenButton}>
-                  <Text style={styles.mediaOpenButtonText}>{selectedCourse.mediaType === "video" ? "Voir la vidéo" : "Écouter le cours"}</Text>
+                <Pressable accessibilityRole="button" onPress={() => selectedCourse.mediaType === "video" ? Linking.openURL(selectedCourse.mediaUrl) : (audioPlayer.playing ? audioPlayer.pause() : audioPlayer.play())} style={styles.mediaOpenButton}>
+                  <Text style={styles.mediaOpenButtonText}>{selectedCourse.mediaType === "video" ? "Voir la vidéo" : audioPlayer.playing ? "Mettre en pause" : "▶ Écouter le cours"}</Text>
                 </Pressable>
               ) : null}
               {selectedCourse.excerptUrl ? (
@@ -774,6 +874,13 @@ const styles = StyleSheet.create({
   formInput: { minHeight: 43, paddingHorizontal: 11, marginTop: 8, borderWidth: 1, borderColor: "#E8E5DA", borderRadius: 9, backgroundColor: "#FBFAF6", color: "#183D32", fontSize: 12 },
   formTextArea: { minHeight: 115, paddingTop: 11 },
   formLabel: { color: "#68746B", fontSize: 11, fontWeight: "700", marginTop: 12 },
+  recordingBox: { padding: 11, marginTop: 10, borderRadius: 10, backgroundColor: "#F4F7F3", borderWidth: 1, borderColor: "#E1E9E1" },
+  recordingActive: { backgroundColor: "#A6352C" },
+  recordingReady: { color: "#315243", fontSize: 11, marginTop: 8 },
+  recordingActions: { marginTop: 2 },
+  previewButton: { backgroundColor: "#EAF1EB", borderColor: "#D7E5D9" },
+  discardButton: { borderColor: "#F0D9D6", backgroundColor: "#FFF8F7" },
+  discardText: { color: "#A6352C", fontSize: 12, fontWeight: "700" },
   mediaTypeRow: { flexDirection: "row", gap: 8, marginTop: 7 },
   mediaTypeButton: { flex: 1, minHeight: 38, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#E8E5DA", borderRadius: 9 },
   mediaTypeButtonSelected: { borderColor: colors.green600, backgroundColor: "#EAF1EB" },
