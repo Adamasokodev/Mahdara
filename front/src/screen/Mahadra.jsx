@@ -105,7 +105,12 @@ function Mahadra({ navigation }) {
           </>
         ) : (
           <>
-            <View style={styles.banner}>
+            <ImageBackground
+              source={{ uri: "https://images.unsplash.com/photo-1590075865003-e48277faa558?auto=format&fit=crop&w=1200&q=85" }}
+              style={styles.banner}
+              imageStyle={styles.bannerImage}
+            >
+              <View style={styles.bannerShade} />
               <Text style={styles.bannerIcon}>⌂</Text>
               <View style={styles.bannerCopy}>
                 <Text style={styles.bannerTitle}>
@@ -115,7 +120,7 @@ function Mahadra({ navigation }) {
                   Parcourez les mahadras et leurs enseignements.
                 </Text>
               </View>
-            </View>
+            </ImageBackground>
             <Text style={styles.sectionTitle}>Explorer par région</Text>
             {loading ? <ActivityIndicator color={colors.green600} style={styles.loader} /> : null}
             {loadError ? <Text style={styles.loadError}>{loadError}</Text> : null}
@@ -177,14 +182,17 @@ const styles = StyleSheet.create({
     paddingTop: 6,
   },
   banner: {
-    minHeight: 104,
+    minHeight: 142,
     flexDirection: "row",
     alignItems: "center",
     padding: 15,
     borderRadius: 17,
-    backgroundColor: "#174838",
+    backgroundColor: colors.green700,
+    overflow: "hidden",
     marginBottom: 22,
   },
+  bannerImage: { borderRadius: 17 },
+  bannerShade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(4, 28, 20, 0.47)" },
   bannerIcon: { color: "#E6CE83", fontSize: 34, marginRight: 14 },
   bannerCopy: { flex: 1 },
   bannerTitle: { color: "#FFFFFF", fontSize: 15, fontWeight: "800" },

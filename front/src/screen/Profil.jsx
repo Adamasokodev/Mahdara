@@ -175,14 +175,14 @@ function Profil({ navigation }) {
             <View style={styles.guestActions}>
               <Pressable
                 accessibilityRole="button"
-                onPress={() => navigation.navigate("Login")}
+                onPress={() => navigation.getParent()?.navigate("Login")}
                 style={styles.guestPrimaryButton}
               >
                 <Text style={styles.guestPrimaryText}>Se connecter</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                onPress={() => navigation.navigate("Register")}
+                onPress={() => navigation.getParent()?.navigate("Register")}
                 style={styles.guestSecondaryButton}
               >
                 <Text style={styles.guestSecondaryText}>Créer un compte</Text>
@@ -220,9 +220,11 @@ function Profil({ navigation }) {
                 if (tool.action === "courses") {
                   navigation.navigate("Cours");
                 } else if (tool.action === "library") {
-                  navigation.navigate("Bibliothèque");
+                  navigation.navigate("Bibliotheque");
                 } else if (tool.action === "mahadras") {
                   navigation.getParent()?.navigate("Mahadras");
+                } else if (tool.action === "progress") {
+                  navigation.navigate("Quiz", { screen: "evaluations" });
                 } else if (tool.action === "admin") {
                   openPanel();
                 } else {

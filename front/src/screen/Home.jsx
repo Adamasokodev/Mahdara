@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-import React, { useEffect, useMemo, useState } from "react";
-=======
 import React, { useCallback, useMemo, useState } from "react";
->>>>>>> ca668bae1f09baef64fbc648ec3e40ecbcdb768b
 import {
   ActivityIndicator,
   Alert,
@@ -20,11 +16,8 @@ import { useFocusEffect } from "@react-navigation/native";
 import colors from "../theme/colors";
 import { useAuth } from "../context/AuthContext";
 import { API_URL } from "../config/api";
-<<<<<<< HEAD
-import { getCoursePlaceholder, toCatalogCourse } from "../utils/courseCatalog";
+import { toCatalogCourse } from "../utils/courseCatalog";
 import AppHeader from "../components/common/AppHeader";
-=======
->>>>>>> ca668bae1f09baef64fbc648ec3e40ecbcdb768b
 
 const mahdaras = [
   { name: "Mahadra de Nouakchott", location: "Nouakchott · Tevragh Zeina" },
@@ -34,54 +27,11 @@ const mahdaras = [
 
 function Home({ navigation }) {
   const { user, token } = useAuth();
-<<<<<<< HEAD
-=======
   const [courses, setCourses] = useState([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [coursesError, setCoursesError] = useState("");
->>>>>>> ca668bae1f09baef64fbc648ec3e40ecbcdb768b
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("Tout");
-  const [courses, setCourses] = useState([]);
-  const [loadingCourses, setLoadingCourses] = useState(true);
-  const [courseError, setCourseError] = useState("");
-
-  useEffect(() => {
-    let active = true;
-    const headers = {
-      Accept: "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    };
-
-    setLoadingCourses(true);
-    setCourseError("");
-    setCourses([]);
-    fetch(`${API_URL}/cours`, { headers })
-      .then((response) => response.ok
-        ? response.json()
-        : Promise.reject(new Error("Le serveur n’a pas pu charger les cours.")))
-      .then((data) => {
-        if (active) {
-          if (!Array.isArray(data)) {
-            throw new Error("La réponse des cours est invalide.");
-          }
-          setCourses(data.map(toCatalogCourse));
-        }
-      })
-      .catch(() => {
-        if (active) setCourseError("Les cours ne sont pas accessibles pour le moment.");
-      })
-      .finally(() => {
-        if (active) setLoadingCourses(false);
-      });
-
-    return () => { active = false; };
-  }, [token]);
-
-  const categories = useMemo(
-    () => ["Tout", ...new Set(courses.map((course) => course.category).filter(Boolean))],
-    [courses],
-  );
 
   useFocusEffect(useCallback(() => {
     let active = true;
@@ -96,16 +46,8 @@ function Home({ navigation }) {
       .then((response) => response.ok ? response.json() : Promise.reject(new Error("Cours indisponibles")))
       .then((data) => {
         if (!active) return;
-        const items = (Array.isArray(data) ? data : []).map((course) => ({
-          ...course,
-          category: course.matiere || "Autre",
-          title: course.titre,
-          teacher: [course.cheikh?.user?.prenom, course.cheikh?.user?.name].filter(Boolean).join(" ") || "Cheikh de la Mahdara",
-          duration: course.duree_minutes ? `${course.duree_minutes} min` : "Durée non précisée",
-          level: course.niveau || "",
-          image: course.image_url || null,
-          icon: course.type_media === "video" ? "▶" : "♫",
-        }));
+        if (!Array.isArray(data)) throw new Error("Réponse de cours invalide");
+        const items = data.map(toCatalogCourse);
         setCourses(items.sort((left, right) => Number(right.id) - Number(left.id)));
       })
       .catch(() => { if (active) setCoursesError("Les cours ne sont pas accessibles pour le moment."); })
@@ -114,8 +56,10 @@ function Home({ navigation }) {
     return () => { active = false; };
   }, [token]));
 
-  const categories = useMemo(() => ["Tout", ...new Set(courses.map((course) => course.category).filter(Boolean))], [courses]);
-
+  const categories = useMemo(
+    () => ["Tout", ...new Set(courses.map((course) => course.category).filter(Boolean))],
+    [courses],
+  );
   const visibleCourses = useMemo(() => {
     const term = search.trim().toLocaleLowerCase("fr");
     return courses.filter((course) => {
@@ -128,11 +72,7 @@ function Home({ navigation }) {
           .includes(term);
       return matchesCategory && matchesSearch;
     });
-<<<<<<< HEAD
-  }, [category, courses, search]);
-=======
   }, [courses, category, search]);
->>>>>>> ca668bae1f09baef64fbc648ec3e40ecbcdb768b
   const visibleMahdaras = useMemo(() => {
     const term = search.trim().toLocaleLowerCase("fr");
     if (!term) return [];
@@ -151,6 +91,7 @@ function Home({ navigation }) {
       >
         <AppHeader
           title="Mahdara"
+          subtitle="Savoir · Transmission · Spiritualité"
           showLogo
           rightIcon="notifications-outline"
           onRightPress={() => Alert.alert(
@@ -159,64 +100,49 @@ function Home({ navigation }) {
           )}
           horizontalInset={18}
         />
-
-<<<<<<< HEAD
-        <View style={styles.welcomeCard}>
-          <Text style={styles.welcome}>Assalamu alaykum 👋</Text>
-          <Text style={styles.welcomeSubtitle}>
-            Un foyer numérique pour apprendre et transmettre les savoirs d’Afrique de l’Ouest.
-          </Text>
-          <View style={styles.shortcutsRow}>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => navigation.getParent()?.navigate("CoranDetail")}
-              style={({ pressed }) => [styles.shortcutCard, pressed && styles.pressed]}
-            >
-              <View style={styles.quranShortcutIcon}><Text style={styles.quranShortcutGlyph}>۞</Text></View>
-              <Text style={styles.quranShortcutTitle}>Lire & écouter le Coran</Text>
-              <Text style={styles.quranShortcutSubtitle}>Récitation audio</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => navigation.navigate("Bibliothèque")}
-              style={({ pressed }) => [styles.shortcutCard, pressed && styles.pressed]}
-            >
-              <View style={[styles.quranShortcutIcon, styles.libraryShortcutIcon]}><Text style={styles.quranShortcutGlyph}>▤</Text></View>
-              <Text style={styles.quranShortcutTitle}>Livres & patrimoine</Text>
-              <Text style={styles.quranShortcutSubtitle}>Bibliothèque</Text>
-            </Pressable>
-          </View>
-        </View>
-=======
         <Text style={styles.welcome}>Assalamu alaykum 👋</Text>
         <Text style={styles.welcomeSubtitle}>Un foyer numérique pour apprendre et transmettre les savoirs d’Afrique de l’Ouest.</Text>
->>>>>>> ca668bae1f09baef64fbc648ec3e40ecbcdb768b
 
         <Pressable
           accessibilityRole="button"
-          onPress={() => navigation.getParent()?.navigate("Mahadras")}
-          style={({ pressed }) => [styles.mahdaraLink, pressed && styles.pressed]}
+          onPress={() => navigation.getParent()?.navigate("CoranDetail")}
+          style={({ pressed }) => [styles.featuredCard, pressed && styles.pressed]}
         >
-          <Text style={styles.mahdaraIcon}>⌂</Text>
-          <View style={styles.mahdaraCopy}>
-            <Text style={styles.mahdaraTitle}>Découvrir les mahadras</Text>
-            <Text style={styles.mahdaraDescription}>Cheikhs, enseignements et lieux de transmission</Text>
-          </View>
-          <Text style={styles.mahdaraArrow}>›</Text>
+          <ImageBackground
+            source={{ uri: "https://images.unsplash.com/photo-1609599006353-e629aaabfeae?auto=format&fit=crop&w=1200&q=85" }}
+            imageStyle={styles.featuredImage}
+            style={styles.featuredImage}
+          >
+            <View style={styles.featuredShade} />
+            <View style={styles.featuredCopy}>
+              <Text style={styles.featuredEyebrow}>À DÉCOUVRIR</Text>
+              <Text style={styles.featuredTitle}>Le Saint Coran</Text>
+              <Text style={styles.featuredSubtitle}>Lisez, écoutez et apprenez à votre rythme.</Text>
+            </View>
+            <View style={styles.featuredArrow}><Text style={styles.featuredArrowText}>›</Text></View>
+          </ImageBackground>
         </Pressable>
 
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => navigation.navigate("Bibliothèque")}
-          style={({ pressed }) => [styles.libraryShortcut, pressed && styles.pressed]}
-        >
-          <View style={styles.libraryShortcutIcon}><Text style={styles.libraryShortcutGlyph}>▤</Text></View>
-          <View style={styles.quranShortcutCopy}>
-            <Text style={styles.quranShortcutTitle}>Livres, poèmes et patrimoine</Text>
-            <Text style={styles.quranShortcutSubtitle}>Explorer la bibliothèque ouest-africaine</Text>
-          </View>
-          <Text style={styles.quranShortcutArrow}>›</Text>
-        </Pressable>
+        <View style={styles.shortcutsRow}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => navigation.getParent()?.navigate("CoranDetail")}
+            style={({ pressed }) => [styles.shortcutCard, pressed && styles.pressed]}
+          >
+            <View style={styles.shortcutIcon}><Text style={styles.shortcutGlyph}>۞</Text></View>
+            <Text style={styles.shortcutTitle}>Lire & écouter le Coran</Text>
+            <Text style={styles.shortcutSubtitle}>Récitation audio</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => navigation.navigate("Bibliotheque")}
+            style={({ pressed }) => [styles.shortcutCard, styles.libraryShortcut, pressed && styles.pressed]}
+          >
+            <View style={[styles.shortcutIcon, styles.libraryShortcutIcon]}><Text style={styles.libraryShortcutGlyph}>▤</Text></View>
+            <Text style={styles.shortcutTitle}>Livres & patrimoine</Text>
+            <Text style={styles.shortcutSubtitle}>Bibliothèque</Text>
+          </Pressable>
+        </View>
 
         <View style={styles.searchBox}>
           <Text style={styles.searchIcon}>⌕</Text>
@@ -297,6 +223,19 @@ function Home({ navigation }) {
           </Text>
         </Pressable>
 
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => navigation.getParent()?.navigate("Mahadras")}
+          style={({ pressed }) => [styles.mahdaraLink, pressed && styles.pressed]}
+        >
+          <Text style={styles.mahdaraIcon}>⌂</Text>
+          <View style={styles.mahdaraCopy}>
+            <Text style={styles.mahdaraTitle}>Découvrir les madahras</Text>
+            <Text style={styles.mahdaraDescription}>Cheikhs, enseignements et lieux de transmission</Text>
+          </View>
+          <Text style={styles.mahdaraArrow}>›</Text>
+        </Pressable>
+
         <View style={styles.sectionHeading}>
           <Text style={styles.sectionTitle}>Explorer les matières</Text>
           <Pressable onPress={() => navigation.navigate("Cours")}>
@@ -328,64 +267,36 @@ function Home({ navigation }) {
           <Text style={styles.sectionTitle}>Cours disponibles</Text>
           <Text style={styles.sectionHint}>{visibleCourses.length} cours</Text>
         </View>
-        {loadingCourses ? <ActivityIndicator color={colors.green600} style={styles.courseLoader} /> : null}
-        {!loadingCourses && courseError ? <Text style={styles.courseStatus}>{courseError}</Text> : null}
-        {visibleCourses.length ? visibleCourses.map((course) => (
+        {loadingCourses ? (
+          <ActivityIndicator color={colors.green600} style={styles.loadingCourses} />
+        ) : visibleCourses.length ? visibleCourses.map((course) => (
           <Pressable
             key={course.id}
             accessibilityRole="button"
-<<<<<<< HEAD
-            onPress={() => navigation.navigate("Cours", {
-              courseId: course.serverId,
-              courseSelectionKey: Date.now(),
-            })}
-            style={({ pressed }) => [styles.courseCard, pressed && styles.pressed]}
-          >
-            <ImageBackground source={{ uri: course.image || getCoursePlaceholder(course.category) }} style={styles.courseImage} imageStyle={styles.courseImageCorners}>
-              <View style={styles.imageShade} />
-              <Text style={styles.categoryBadge}>{course.category}</Text>
-=======
-            onPress={() => navigation.navigate("Cours", { matiereId: course.matiere_id, matiereNom: course.category })}
+            onPress={() => navigation.navigate("Cours", { screen: "CoursListe", params: { matiereId: course.matiereId, matiereNom: course.category } })}
             style={({ pressed }) => [styles.courseCard, pressed && styles.pressed]}
           >
             <ImageBackground source={course.image ? { uri: course.image } : undefined} style={[styles.courseImage, !course.image && styles.courseImageFallback]} imageStyle={styles.courseImageCorners}>
               <View style={styles.imageShade} />
               <Text style={styles.categoryBadge}>{course.category}</Text>
               {!course.image ? <Text style={styles.courseFallbackIcon}>{course.icon}</Text> : null}
-              <View style={styles.newBadge}>
-                <Text style={styles.newBadgeText}>Disponible</Text>
-              </View>
->>>>>>> ca668bae1f09baef64fbc648ec3e40ecbcdb768b
+              <View style={styles.newBadge}><Text style={styles.newBadgeText}>Disponible</Text></View>
             </ImageBackground>
             <View style={styles.courseCopy}>
               <Text style={styles.courseTitle}>{course.title}</Text>
               <Text style={styles.teacher}>{course.teacher}</Text>
               <View style={styles.courseMetaRow}>
-<<<<<<< HEAD
-                <Text style={styles.courseMeta}>
-                  {course.duration ? `◷  ${course.duration} min` : "Durée non précisée"}
-                </Text>
-                <Text style={styles.levelBadge}>{course.level}</Text>
-=======
-                <Text style={styles.courseMeta}>◷  {course.duration}</Text>
+                <Text style={styles.courseMeta}>·  {course.duration ? `${course.duration} min` : "Durée non précisée"}</Text>
                 {course.level ? <Text style={styles.levelBadge}>{course.level}</Text> : null}
->>>>>>> ca668bae1f09baef64fbc648ec3e40ecbcdb768b
                 <Text style={styles.courseArrow}>↗</Text>
               </View>
             </View>
           </Pressable>
-<<<<<<< HEAD
-        )) : !loadingCourses && !courseError ? (
-=======
-        )) : loadingCourses ? (
-          <ActivityIndicator color={colors.green600} style={styles.loadingCourses} />
-        ) : coursesError ? (
+        )) : coursesError ? (
           <Text style={styles.noResults}>{coursesError}</Text>
         ) : (
->>>>>>> ca668bae1f09baef64fbc648ec3e40ecbcdb768b
           <Text style={styles.noResults}>Aucun cours ne correspond à votre recherche.</Text>
-        ) : null}
-
+        )}
         {visibleMahdaras.length > 0 ? (
           <View style={styles.searchMahdaras}>
             <Text style={styles.searchMahdarasTitle}>Mahadras correspondantes</Text>
@@ -410,35 +321,36 @@ function Home({ navigation }) {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.neutral50 },
-  scrollContent: { paddingHorizontal: 18, paddingTop: 0, paddingBottom: 26 },
+  scrollContent: { paddingHorizontal: 18, paddingTop: 0, paddingBottom: 28 },
   welcomeCard: { padding: 13, marginTop: -20, borderRadius: 17, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#ECEAE2", marginBottom: 13 },
-  welcome: { color: "#25362D", fontSize: 19, fontWeight: "800", fontFamily: "Georgia" },
-  welcomeSubtitle: { color: "#78827B", fontSize: 10, lineHeight: 15, marginTop: 4, marginBottom: 11 },
-  shortcutsRow: { flexDirection: "row", gap: 8 },
-  shortcutCard: { flex: 1, minHeight: 83, padding: 9, borderRadius: 12, backgroundColor: "#E8F0E9", borderWidth: 1, borderColor: "#DCE8DF" },
-  quranShortcutIcon: { width: 29, height: 29, alignItems: "center", justifyContent: "center", borderRadius: 9, backgroundColor: "#FFFFFF", marginBottom: 5 },
-  libraryShortcutIcon: { backgroundColor: "#F5F0E4" },
-  quranShortcutGlyph: { color: colors.green600, fontSize: 23 },
-  quranShortcutCopy: { flex: 1 },
-<<<<<<< HEAD
-  quranShortcutTitle: { color: colors.neutral900, fontSize: 9, fontWeight: "800" },
-  quranShortcutSubtitle: { color: "#77847B", fontSize: 8, marginTop: 3 },
-=======
-  quranShortcutTitle: { color: colors.neutral900, fontSize: 13, fontWeight: "800" },
-  quranShortcutSubtitle: { color: "#77847B", fontSize: 10, marginTop: 4 },
-  quranShortcutArrow: { color: colors.green600, fontSize: 24, marginLeft: 6 },
-  libraryShortcut: { minHeight: 68, flexDirection: "row", alignItems: "center", paddingHorizontal: 12, borderRadius: 15, backgroundColor: "#FBF7EF", borderWidth: 1, borderColor: "#EFE5D2", marginBottom: 17 },
-  libraryShortcutIcon: { width: 42, height: 42, alignItems: "center", justifyContent: "center", borderRadius: 13, backgroundColor: "#FFFFFF", marginRight: 11 },
-  libraryShortcutGlyph: { color: "#A47C35", fontSize: 22 },
->>>>>>> ca668bae1f09baef64fbc648ec3e40ecbcdb768b
-  searchBox: { height: 48, flexDirection: "row", alignItems: "center", paddingHorizontal: 13, borderRadius: 13, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E9E8E1", marginBottom: 22 },
+  welcome: { color: colors.neutral900, fontSize: 21, fontWeight: "800", fontFamily: "Georgia", marginTop: 4 },
+  welcomeSubtitle: { color: colors.neutral600, fontSize: 12, lineHeight: 18, marginTop: 5, marginBottom: 14 },
+  featuredCard: { overflow: "hidden", height: 150, borderRadius: 17, backgroundColor: colors.green700, marginBottom: 11, elevation: 2 },
+  featuredImage: { flex: 1, justifyContent: "flex-end", borderRadius: 17 },
+  featuredShade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(4, 31, 23, 0.38)" },
+  featuredCopy: { maxWidth: "78%", padding: 15 },
+  featuredEyebrow: { color: "#E8D69E", fontSize: 9, fontWeight: "800", letterSpacing: 1.2 },
+  featuredTitle: { color: colors.white, fontSize: 18, fontWeight: "800", marginTop: 5 },
+  featuredSubtitle: { color: "#F2F3EB", fontSize: 11, lineHeight: 16, marginTop: 4 },
+  featuredArrow: { position: "absolute", right: 12, bottom: 12, width: 31, height: 31, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: "#F4E8C7" },
+  featuredArrowText: { color: colors.green700, fontSize: 25, lineHeight: 28, marginTop: -2 },
+  shortcutsRow: { flexDirection: "row", gap: 9, marginBottom: 16 },
+  shortcutCard: { flex: 1, minHeight: 108, padding: 11, borderRadius: 15, backgroundColor: colors.green100, borderWidth: 1, borderColor: "#DCE8DF" },
+  shortcutIcon: { width: 34, height: 34, alignItems: "center", justifyContent: "center", borderRadius: 12, backgroundColor: colors.white, marginBottom: 7 },
+  shortcutGlyph: { color: colors.green600, fontSize: 22 },
+  libraryShortcut: { backgroundColor: "#FBF7EF", borderColor: "#EFE5D2" },
+  libraryShortcutIcon: { backgroundColor: colors.white },
+  libraryShortcutGlyph: { color: colors.gold400, fontSize: 20 },
+  shortcutTitle: { color: colors.neutral900, fontSize: 11, lineHeight: 15, fontWeight: "800" },
+  shortcutSubtitle: { color: colors.neutral600, fontSize: 9, marginTop: 4 },
+  searchBox: { height: 48, flexDirection: "row", alignItems: "center", paddingHorizontal: 13, borderRadius: 13, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral200, marginBottom: 22 },
   searchIcon: { color: "#758078", fontSize: 24, marginRight: 8 },
   searchInput: { flex: 1, color: "#26342C", fontSize: 13, paddingVertical: 0 },
   clearSearch: { color: "#68746B", fontSize: 22, paddingHorizontal: 4 },
   sectionHeading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 11 },
   sectionTitle: { color: colors.neutral900, fontSize: 17, fontWeight: "800" },
   sectionHint: { color: "#8A928B", fontSize: 11 },
-  resumeCard: { padding: 14, borderRadius: 17, backgroundColor: "#0B5D46", marginBottom: 22 },
+  resumeCard: { padding: 14, borderRadius: 17, backgroundColor: colors.green700, marginBottom: 16 },
   resumeTop: { flexDirection: "row", alignItems: "center" },
   resumeBook: { width: 45, height: 45, borderRadius: 13, backgroundColor: "#2D6652", alignItems: "center", justifyContent: "center" },
   resumeBookIcon: { color: "#F0DCA1", fontSize: 25 },
@@ -459,18 +371,11 @@ const styles = StyleSheet.create({
   chipText: { color: "#6E7870", fontSize: 11, fontWeight: "600" },
   chipTextSelected: { color: "#FFFFFF" },
   courseCard: { flexDirection: "row", alignItems: "center", padding: 7, borderRadius: 14, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E8E7E0", marginBottom: 8 },
-  courseLoader: { marginVertical: 18 },
-  courseStatus: { color: "#A6352C", fontSize: 11, textAlign: "center", padding: 12 },
   pressed: { opacity: 0.88 },
-<<<<<<< HEAD
-  courseImage: { width: 72, height: 66, justifyContent: "flex-end", overflow: "hidden", borderRadius: 10, backgroundColor: "#B9AD98" },
-  courseImageCorners: { borderRadius: 10 },
-=======
-  courseImage: { height: 145, justifyContent: "flex-end", backgroundColor: "#B9AD98" },
+  courseImage: { width: 74, height: 76, justifyContent: "flex-end", overflow: "hidden", borderRadius: 10, backgroundColor: "#B9AD98" },
   courseImageFallback: { backgroundColor: "#DCEBE3", alignItems: "center" },
-  courseImageCorners: { borderTopLeftRadius: 15, borderTopRightRadius: 15 },
-  courseFallbackIcon: { position: "absolute", alignSelf: "center", color: "#174838", fontSize: 58, opacity: 0.8 },
->>>>>>> ca668bae1f09baef64fbc648ec3e40ecbcdb768b
+  courseImageCorners: { borderRadius: 10 },
+  courseFallbackIcon: { position: "absolute", alignSelf: "center", color: "#174838", fontSize: 36, opacity: 0.8 },
   imageShade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(18, 28, 21, 0.25)" },
   categoryBadge: { alignSelf: "flex-start", overflow: "hidden", margin: 5, paddingHorizontal: 5, paddingVertical: 3, borderRadius: 6, color: "#FFFFFF", backgroundColor: colors.green600, fontSize: 7, fontWeight: "800" },
   newBadge: { position: "absolute", top: 4, right: 4, paddingHorizontal: 4, paddingVertical: 3, borderRadius: 6, backgroundColor: colors.gold50 },

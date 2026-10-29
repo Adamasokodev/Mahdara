@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
+  ImageBackground,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import colors from "../theme/colors";
 import AppHeader from "../components/common/AppHeader";
 
+// Contenu pédagogique local : aucune API quiz/évaluation n’existe encore dans le backend.
 const assessments = [
   {
     id: "coran",
@@ -180,13 +182,18 @@ function Quiz({ route, navigation }) {
           </View>
         ) : (
           <>
-            <View style={styles.hero}>
+            <ImageBackground
+              source={{ uri: "https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&w=1200&q=85" }}
+              style={styles.hero}
+              imageStyle={styles.heroImage}
+            >
+              <View style={styles.heroShade} />
               <View style={styles.heroIcon}><Text style={styles.heroGlyph}>✦</Text></View>
               <View style={styles.heroCopy}>
                 <Text style={styles.heroTitle}>{tab === "Quiz" ? "Testez vos connaissances" : "Suivez vos acquis"}</Text>
                 <Text style={styles.heroSubtitle}>{tab === "Quiz" ? "Améliorez votre niveau avec nos quiz." : "Progressez grâce à vos évaluations."}</Text>
               </View>
-            </View>
+            </ImageBackground>
 
             <View style={styles.tabs}>
               {["Quiz", "Évaluations"].map((item) => (
@@ -222,6 +229,12 @@ function Quiz({ route, navigation }) {
             )}
 
             <Text style={styles.listHeading}>{tab === "Quiz" ? "Pour réviser" : "Votre parcours"}</Text>
+            {visibleAssessments.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <Text style={styles.emptyTitle}>{tab === "Quiz" ? "Aucun quiz pour ce thème" : "Aucune évaluation terminée"}</Text>
+                <Text style={styles.emptyText}>Les résultats de vos évaluations apparaîtront ici après leur réalisation.</Text>
+              </View>
+            ) : null}
             {visibleAssessments.map((assessment, index) => (
               <View key={assessment.id} style={styles.assessmentCard}>
                 <View style={[styles.assessmentIcon, index % 2 ? styles.iconGold : styles.iconBlue]}>
@@ -259,7 +272,9 @@ function Quiz({ route, navigation }) {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.neutral50 },
   content: { paddingHorizontal: 19, paddingTop: 0, paddingBottom: 30 },
-  hero: { minHeight: 116, flexDirection: "row", alignItems: "center", padding: 16, borderRadius: 18, backgroundColor: "#0B5D46", marginBottom: 18 },
+  hero: { minHeight: 142, flexDirection: "row", alignItems: "flex-end", padding: 16, borderRadius: 18, backgroundColor: colors.green700, marginBottom: 15, overflow: "hidden" },
+  heroImage: { borderRadius: 18 },
+  heroShade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(3, 30, 21, 0.45)" },
   heroIcon: { width: 50, height: 50, borderRadius: 16, backgroundColor: "#26745B", alignItems: "center", justifyContent: "center" },
   heroGlyph: { color: "#FFFFFF", fontSize: 26 },
   heroCopy: { flex: 1, marginLeft: 13 },
@@ -276,6 +291,9 @@ const styles = StyleSheet.create({
   topicText: { color: "#6E7870", fontSize: 10, fontWeight: "700" },
   topicTextActive: { color: "#FFFFFF" },
   listHeading: { color: colors.neutral900, fontSize: 17, fontWeight: "800", marginBottom: 11 },
+  emptyCard: { padding: 18, borderRadius: 16, borderWidth: 1, borderColor: colors.neutral200, backgroundColor: colors.white },
+  emptyTitle: { color: colors.neutral900, fontSize: 14, fontWeight: "800" },
+  emptyText: { color: colors.neutral600, fontSize: 11, lineHeight: 17, marginTop: 6 },
   assessmentCard: { flexDirection: "row", padding: 14, borderRadius: 16, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E9E8E1", marginBottom: 11 },
   assessmentIcon: { width: 44, height: 44, borderRadius: 13, alignItems: "center", justifyContent: "center" },
   iconBlue: { backgroundColor: "#E5EFE8" },

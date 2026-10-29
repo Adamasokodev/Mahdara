@@ -3,7 +3,9 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  ImageBackground,
   Pressable,
+  Share,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,6 +17,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
 import { API_URL } from "../config/api";
 import colors from "../theme/colors";
+import { getCoursePlaceholder } from "../utils/courseCatalog";
+import AppHeader from "../components/common/AppHeader";
 
 const mapPart = (part) => ({
   id: part.id,
@@ -93,7 +97,7 @@ export default function CoursDetail({ navigation, route }) {
 
   const toggleAudio = async () => {
     if (!token) {
-      navigation.navigate("Login");
+      navigation.getParent()?.getParent()?.navigate("Login");
       return;
     }
     if (!part?.audioUrl) {
@@ -138,19 +142,14 @@ export default function CoursDetail({ navigation, route }) {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
-      <StatusBar style="dark" />
-      <View style={styles.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel={part ? "Retour aux parties" : "Retour aux cours"} onPress={back} style={styles.backButton}>
-          <Text style={styles.backGlyph}>‹</Text>
-        </Pressable>
-        <View style={styles.headerCopy}>
-          <Text style={styles.headerEyebrow}>{part ? "LECTURE" : "ESPACE APPRENTISSAGE"}</Text>
-          <Text numberOfLines={1} style={styles.headerTitle}>{part ? part.title : course.category || "Cours"}</Text>
-        </View>
-        <View style={styles.headerSeal}><Text style={styles.headerSealText}>✦</Text></View>
-      </View>
-
+    <SafeAreaView style={styles.safeArea} edges={["left", "right", "bottom"]}>
+      <StatusBar style="light" />
+<AppHeader
+        title={part ? part.title : course.category || "Cours"}
+        subtitle={part ? "LECTURE" : "ESPACE APPRENTISSAGE"}
+        showBack
+        onBackPress={back}
+      />
       {part ? (
         <>
           <ScrollView contentContainerStyle={styles.readerContent} showsVerticalScrollIndicator={false}>
@@ -166,7 +165,7 @@ export default function CoursDetail({ navigation, route }) {
                 <Text style={styles.accessIcon}>◉</Text>
                 <Text style={styles.accessTitle}>{token ? "Activez votre compte étudiant" : "Poursuivez votre apprentissage"}</Text>
                 <Text style={styles.accessText}>{token ? "Le contenu complet sera disponible après activation de votre compte." : "Connectez-vous pour accéder au texte intégral et à l’écoute audio."}</Text>
-                {!token ? <Pressable onPress={() => navigation.navigate("Login")} style={styles.primaryButton}><Text style={styles.primaryButtonText}>Se connecter</Text></Pressable> : null}
+                {!token ? <Pressable onPress={() => navigation.getParent()?.getParent()?.navigate("Login")} style={styles.primaryButton}><Text style={styles.primaryButtonText}>Se connecter</Text></Pressable> : null}
               </View>
             ) : (
               <>
@@ -188,10 +187,29 @@ export default function CoursDetail({ navigation, route }) {
         </>
       ) : (
         <ScrollView contentContainerStyle={styles.courseContent} showsVerticalScrollIndicator={false}>
+          <ImageBackground
+            source={{ uri: course.image || getCoursePlaceholder(course.category) }}
+            style={styles.detailCover}
+            imageStyle={styles.detailCoverImage}
+          >
+            <View style={styles.detailCoverShade} />
+            <View style={styles.coverActions}>
+              <View style={styles.availableBadge}><View style={styles.availableDot} /><Text style={styles.availableText}>Disponible</Text></View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Partager ce cours"
+                onPress={() => Share.share({ message: `${course.title || "Cours Mahdara"}\n${course.description || ""}` })}
+                style={styles.shareButton}
+              >
+                <Text style={styles.shareGlyph}>↗</Text>
+              </Pressable>
+            </View>
+          </ImageBackground>
           <View style={styles.hero}>
             <View style={styles.heroOrb} />
             <View style={styles.heroTop}><Text style={styles.heroTag}>{course.category || "COURS"}</Text><Text style={styles.heroIcon}>{course.icon || "♫"}</Text></View>
             <Text style={styles.heroTitle}>{course.title || "Cours"}</Text>
+            {course.teacher ? <Text style={styles.teacherName}>{course.teacher}</Text> : null}
             <View style={styles.heroMeta}><Text style={styles.heroMetaText}>{course.level || "Tous niveaux"}</Text><View style={styles.heroMetaDot} /><Text style={styles.heroMetaText}>{course.duration ? `${course.duration} min` : "À votre rythme"}</Text></View>
           </View>
 
@@ -214,24 +232,26 @@ export default function CoursDetail({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#F6F7F3" },
-  header: { minHeight: 68, flexDirection: "row", alignItems: "center", paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: "#E9ECE5", backgroundColor: "#FFFFFF" },
-  backButton: { width: 40, height: 40, justifyContent: "center", alignItems: "center", borderRadius: 14, backgroundColor: "#F0F4EF" },
-  backGlyph: { color: "#174735", fontSize: 30, lineHeight: 33, marginTop: -3 },
-  headerCopy: { flex: 1, marginLeft: 12 },
-  headerEyebrow: { color: "#B28B2E", fontSize: 8, fontWeight: "800", letterSpacing: 1.5 },
-  headerTitle: { color: "#183D32", fontSize: 14, fontWeight: "800", marginTop: 3 },
-  headerSeal: { width: 36, height: 36, alignItems: "center", justifyContent: "center", borderRadius: 13, backgroundColor: "#E8F0E9" },
-  headerSealText: { color: "#B28B2E", fontSize: 18 },
-  courseContent: { paddingHorizontal: 20, paddingTop: 19, paddingBottom: 38 },
-  hero: { overflow: "hidden", padding: 20, borderRadius: 23, backgroundColor: "#103F32" },
+  safeArea: { flex: 1, backgroundColor: colors.neutral50 },
+  courseContent: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 38 },
+  detailCover: { height: 210, overflow: "hidden", justifyContent: "flex-start", padding: 13, borderRadius: 19, backgroundColor: colors.green700 },
+  detailCoverImage: { borderRadius: 19 },
+  detailCoverShade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(3, 25, 18, 0.2)" },
+  coverActions: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  availableBadge: { flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 7, borderRadius: 15, backgroundColor: colors.white },
+  availableDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "#3B9A62", marginRight: 6 },
+  availableText: { color: colors.green700, fontSize: 10, fontWeight: "800" },
+  shareButton: { width: 37, height: 37, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.92)" },
+  shareGlyph: { color: colors.green700, fontSize: 20, fontWeight: "700" },
+  hero: { overflow: "hidden", padding: 17, marginTop: -1, borderBottomLeftRadius: 18, borderBottomRightRadius: 18, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.neutral200 },
   heroOrb: { position: "absolute", top: -92, right: -35, width: 220, height: 220, borderWidth: 1, borderColor: "rgba(228,196,109,0.2)", borderRadius: 110 },
   heroTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  heroTag: { color: "#E4C46D", fontSize: 9, fontWeight: "800", letterSpacing: 1.4 },
+  heroTag: { color: colors.gold400, fontSize: 9, fontWeight: "800", letterSpacing: 1.4 },
   heroIcon: { width: 44, height: 44, textAlign: "center", textAlignVertical: "center", overflow: "hidden", borderRadius: 15, backgroundColor: "rgba(255,255,255,0.12)", color: "#F7E7B2", fontSize: 23 },
-  heroTitle: { maxWidth: 320, color: "#FFFFFF", fontSize: 23, fontWeight: "800", lineHeight: 29, marginTop: 14 },
+  heroTitle: { maxWidth: 320, color: colors.neutral900, fontSize: 22, fontWeight: "800", lineHeight: 28, marginTop: 11 },
+  teacherName: { color: colors.neutral600, fontSize: 12, marginTop: 5 },
   heroMeta: { flexDirection: "row", alignItems: "center", marginTop: 12 },
-  heroMetaText: { color: "#F4E9C9", fontSize: 10, fontWeight: "700" },
+  heroMetaText: { color: colors.green600, fontSize: 10, fontWeight: "700" },
   heroMetaDot: { width: 4, height: 4, borderRadius: 2, marginHorizontal: 9, backgroundColor: "#D0AD54" },
   statsCard: { minHeight: 82, flexDirection: "row", alignItems: "center", justifyContent: "space-around", paddingVertical: 12, marginTop: 13, borderWidth: 1, borderColor: "#E9ECE5", borderRadius: 17, backgroundColor: "#FFFFFF" },
   stat: { flex: 1, alignItems: "center" },

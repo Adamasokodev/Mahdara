@@ -12,7 +12,6 @@ import Cours from "./src/screen/Cours";
 import CoursDetail from "./src/screen/CoursDetail";
 import Bibliotheque from "./src/screen/Bibliotheque";
 import Coran from "./src/screen/Coran";
-import Bibliotheque from "./src/screen/Bibliotheque";
 import Home from "./src/screen/Home";
 import Mahadra from "./src/screen/Mahadra";
 import Profil from "./src/screen/Profil";
@@ -21,23 +20,23 @@ import colors from "./src/theme/colors";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+const CourseStack = createNativeStackNavigator();
+
+function CourseFlow() {
+  return (
+    <CourseStack.Navigator screenOptions={{ headerShown: false }}>
+      <CourseStack.Screen name="CoursListe" component={Cours} />
+      <CourseStack.Screen name="CourseDetail" component={CoursDetail} options={{ animation: "slide_from_right" }} />
+    </CourseStack.Navigator>
+  );
+}
 
 const icons = {
-<<<<<<< HEAD
   Accueil: { active: "home", inactive: "home-outline" },
   Cours: { active: "book", inactive: "book-outline" },
-  Bibliothèque: { active: "library", inactive: "library-outline" },
+  Bibliotheque: { active: "library", inactive: "library-outline" },
   Quiz: { active: "checkmark-circle", inactive: "checkmark-circle-outline" },
   Profil: { active: "person", inactive: "person-outline" },
-=======
-  Bibliothèque: "▤",
-  Accueil: "⌂",
-  Cours: "▤",
-  Coran: "۞",
-  Quiz: "✎",
-  Mahadra: "◉",
-  Profil: "♙",
->>>>>>> ca668bae1f09baef64fbc648ec3e40ecbcdb768b
 };
 
 function AppTabs() {
@@ -51,16 +50,16 @@ function AppTabs() {
           backgroundColor: "#FFFFFF",
           borderTopColor: "#E8E6DE",
           borderTopWidth: 1,
-          height: 66,
-          paddingBottom: 8,
-          paddingTop: 7,
-          elevation: 8,
+          height: 70,
+          paddingBottom: 9,
+          paddingTop: 8,
+          elevation: 10,
           shadowColor: "#173C2C",
           shadowOffset: { width: 0, height: -3 },
-          shadowOpacity: 0.06,
-          shadowRadius: 8,
+          shadowOpacity: 0.07,
+          shadowRadius: 9,
         },
-        tabBarLabelStyle: { fontSize: 10, fontWeight: "700" },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: "700", marginTop: 1 },
         tabBarIcon: ({ focused, color }) => (
           <Ionicons
             name={focused ? icons[route.name].active : icons[route.name].inactive}
@@ -71,13 +70,8 @@ function AppTabs() {
       })}
     >
       <Tab.Screen name="Accueil" component={Home} />
-      <Tab.Screen name="Cours" component={Cours} />
-<<<<<<< HEAD
-      <Tab.Screen name="Bibliothèque" component={Bibliotheque} />
-=======
-      <Tab.Screen name="Bibliothèque" component={Bibliotheque} options={{ tabBarLabel: "Biblio" }} />
-      <Tab.Screen name="Coran" component={Coran} />
->>>>>>> ca668bae1f09baef64fbc648ec3e40ecbcdb768b
+      <Tab.Screen name="Cours" component={CourseFlow} />
+      <Tab.Screen name="Bibliotheque" component={Bibliotheque} options={{ tabBarLabel: "Bibliothèque" }} />
       <Tab.Screen name="Quiz" component={Quiz} />
       <Tab.Screen name="Profil" component={Profil} />
     </Tab.Navigator>
@@ -103,7 +97,6 @@ function RootNavigator() {
       <Stack.Screen name="Mahadras" component={Mahadra} />
       <Stack.Screen name="Login" component={Login} />
       <Stack.Screen name="Register" component={Register} />
-      <Stack.Screen name="CourseDetail" component={CoursDetail} options={{ animation: "slide_from_right" }} />
     </Stack.Navigator>
   );
 }

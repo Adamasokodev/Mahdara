@@ -2,13 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-<<<<<<< HEAD
   ImageBackground,
-  Linking,
-  Modal,
-=======
-  Image,
->>>>>>> ca668bae1f09baef64fbc648ec3e40ecbcdb768b
   Pressable,
   ScrollView,
   StyleSheet,
@@ -25,29 +19,6 @@ import { API_URL } from "../config/api";
 import { getCoursePlaceholder, toCatalogCourse } from "../utils/courseCatalog";
 import AppHeader from "../components/common/AppHeader";
 
-<<<<<<< HEAD
-=======
-const toPublishedCourse = (course) => ({
-  id: `published-${course.id}`,
-  serverId: course.id,
-  matiereId: course.matiere_id,
-  title: course.titre,
-  category: course.matiere,
-  description: course.contenu || course.description || "",
-  level: course.niveau,
-  duration: course.duree_minutes,
-  book: course.livre,
-  mediaType: course.type_media,
-  mediaUrl: course.fichier_url,
-  excerptUrl: course.extrait_url,
-  listenCount: Number(course.nombre_ecoutes || 0),
-  downloadCount: Number(course.telechargements || 0),
-  teacher: [course.cheikh?.user?.prenom, course.cheikh?.user?.name].filter(Boolean).join(" "),
-  icon: course.type_media === "video" ? "▶" : "♫",
-  color: "#DCEBE3",
-});
-
->>>>>>> ca668bae1f09baef64fbc648ec3e40ecbcdb768b
 function Cours({ navigation, route }) {
   const { token } = useAuth();
   const [publishedCourses, setPublishedCourses] = useState([]);
@@ -152,20 +123,10 @@ function Cours({ navigation, route }) {
     });
   }, [allCourses, favorites, favoritesOnly, search, selectedCategory, selectedMatiereId]);
 
-  useEffect(() => {
-    const requestedCourseId = route?.params?.courseId;
-    if (requestedCourseId == null) return;
-    const requestedCourse = allCourses.find(
-      (course) => String(course.serverId) === String(requestedCourseId),
-    );
-    if (requestedCourse) setSelectedCourse(requestedCourse);
-  }, [allCourses, route?.params?.courseId, route?.params?.courseSelectionKey]);
-
   const updateDraft = (key, value) => setDraft((current) => ({ ...current, [key]: value }));
 
   const openCourse = (course) => {
-    const stackNavigation = navigation.getParent();
-    (stackNavigation || navigation).navigate("CourseDetail", { course });
+    navigation.navigate("CourseDetail", { course });
   };
 
   const toggleRecording = async () => {
@@ -367,17 +328,25 @@ function Cours({ navigation, route }) {
       >
         <AppHeader
           title="Cours"
+          subtitle="Apprendre à votre rythme"
+          subtitle="Apprendre à votre rythme"
           showBack
           rightIcon="search-outline"
-          onBackPress={() => navigation.navigate("Accueil")}
+          onBackPress={() => navigation.getParent()?.navigate("Accueil")}
           onRightPress={() => searchRef.current?.focus()}
-          horizontalInset={22}
+          horizontalInset={20}
         />
 
-        <View style={styles.intro}>
-          <Text style={styles.eyebrow}>MAHDARA  ·  SAVOIR & TRANSMISSION</Text>
-          <Text style={styles.title}>Cours</Text>
-        </View>
+        <ImageBackground
+          source={{ uri: "https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&w=1200&q=85" }}
+          imageStyle={styles.courseHeroImage}
+          style={styles.courseHero}
+        >
+          <View style={styles.courseHeroShade} />
+          <Text style={styles.courseHeroEyebrow}>SAVOIR & TRANSMISSION</Text>
+          <Text style={styles.courseHeroTitle}>Des cours pour approfondir votre foi</Text>
+          <Text style={styles.courseHeroSubtitle}>Apprenez à votre rythme, où que vous soyez.</Text>
+        </ImageBackground>
 
         {canPublish ? (
           <View style={styles.publishPanel}>
@@ -474,42 +443,6 @@ function Cours({ navigation, route }) {
 
         {loadingCourses ? <ActivityIndicator color={colors.green600} style={styles.courseLoader} /> : null}
         {!loadingCourses && courseError && (!canPublish || !showCourseForm) ? <Text style={styles.loadError}>{courseError}</Text> : null}
-
-<<<<<<< HEAD
-        {allCourses[0] ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => setSelectedCourse(allCourses[0])}
-            style={({ pressed }) => [
-              styles.featuredCard,
-              pressed && styles.buttonPressed,
-            ]}
-          >
-            <ImageBackground
-              source={{ uri: allCourses[0].image || getCoursePlaceholder(allCourses[0].category) }}
-              style={styles.featuredImage}
-              imageStyle={styles.featuredImageCorners}
-            >
-              <View style={styles.featuredImageShade} />
-            </ImageBackground>
-            <View style={styles.featuredCopy}>
-              <Text style={styles.featuredEyebrow}>À DÉCOUVRIR</Text>
-              <Text style={styles.featuredTitle}>{allCourses[0].title}</Text>
-              <Text style={styles.featuredMeta}>
-                {allCourses[0].category}
-                {allCourses[0].duration ? `  ·  ${allCourses[0].duration} min` : ""}
-                {allCourses[0].level ? `  ·  ${allCourses[0].level}` : ""}
-              </Text>
-              <View style={styles.featuredButton}>
-                <Text style={styles.featuredButtonText}>Voir le cours</Text>
-                <Text style={styles.featuredArrow}>→</Text>
-              </View>
-            </View>
-          </Pressable>
-        ) : null}
-
-=======
->>>>>>> ca668bae1f09baef64fbc648ec3e40ecbcdb768b
         <View style={styles.searchBox}>
           <Text style={styles.searchIcon}>⌕</Text>
           <TextInput
@@ -703,99 +636,6 @@ function Cours({ navigation, route }) {
         )}
 
       </ScrollView>
-
-<<<<<<< HEAD
-      <Modal
-        animationType="slide"
-        onRequestClose={() => setSelectedCourse(null)}
-        visible={selectedCourse !== null}
-      >
-        <View style={styles.modalBackdrop}>
-          {selectedCourse ? (
-            <ScrollView style={styles.modalCard} contentContainerStyle={styles.modalCardContent} showsVerticalScrollIndicator={false}>
-              <ImageBackground
-                source={{ uri: "https://images.unsplash.com/photo-1609599006353-e629aaabfeae?auto=format&fit=crop&w=1000&q=85" }}
-                style={styles.modalHero}
-                imageStyle={styles.modalHeroImage}
-              >
-                <View style={styles.modalHeroShade} />
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Fermer les détails du cours"
-                  onPress={() => setSelectedCourse(null)}
-                  style={styles.modalCloseIcon}
-                >
-                  <Text style={styles.modalCloseIconText}>‹</Text>
-                </Pressable>
-                <View style={styles.modalHeroCopy}>
-                  <Text style={styles.modalCategory}>{selectedCourse.category.toLocaleUpperCase("fr")}</Text>
-                  <Text style={styles.modalTitle}>{selectedCourse.title}</Text>
-                  <Text style={styles.modalTeacher}>{selectedCourse.teacher || "Enseignants de la Mahdara"}</Text>
-                </View>
-              </ImageBackground>
-              <View style={styles.modalDetails}>
-              <Text style={styles.modalRating}>
-                {selectedCourse.duration ? `◷ ${selectedCourse.duration} min` : "Durée non précisée"}
-              </Text>
-              <Text style={styles.modalLevel}>{selectedCourse.level}</Text>
-              {selectedCourse.description ? <Text style={styles.lessonTextHeading}>Texte du cours</Text> : null}
-              <Text style={styles.modalDescription}>
-                {selectedCourse.description}
-              </Text>
-              <View style={styles.modalMeta}>
-                <Text style={styles.modalMetaText}>
-                  Niveau {selectedCourse.level.toLocaleLowerCase("fr")}
-                </Text>
-                <Text style={styles.detailDivider}>·</Text>
-                <Text style={styles.modalMetaText}>
-                  {selectedCourse.duration ? `${selectedCourse.duration} minutes` : "Durée non précisée"}
-                </Text>
-              </View>
-              {selectedCourse.book ? <Text style={styles.modalBook}>Livre étudié : {selectedCourse.book}</Text> : null}
-              {selectedCourse.mahdara ? <Text style={styles.modalBook}>Mahdara : {selectedCourse.mahdara}</Text> : null}
-              {selectedCourse.language ? <Text style={styles.modalBook}>Langue : {selectedCourse.language}</Text> : null}
-              {selectedCourse.mediaUrl ? (
-                <Pressable accessibilityRole="button" onPress={() => selectedCourse.mediaType === "video" ? Linking.openURL(selectedCourse.mediaUrl) : (audioPlayer.playing ? audioPlayer.pause() : audioPlayer.play())} style={styles.mediaOpenButton}>
-                  <Text style={styles.mediaOpenButtonText}>{selectedCourse.mediaType === "video" ? "Voir la vidéo" : audioPlayer.playing ? "Mettre en pause" : "▶ Écouter le cours"}</Text>
-                </Pressable>
-              ) : null}
-              {selectedCourse.excerptUrl ? (
-                <Pressable accessibilityRole="button" onPress={() => Linking.openURL(selectedCourse.excerptUrl)} style={styles.mediaOpenButton}>
-                  <Text style={styles.mediaOpenButtonText}>Écouter un extrait</Text>
-                </Pressable>
-              ) : null}
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => toggleFavorite(selectedCourse.id)}
-                style={({ pressed }) => [
-                  styles.modalFavoriteButton,
-                  pressed && styles.buttonPressed,
-                ]}
-              >
-                <Text style={styles.modalFavoriteText}>
-                  {favorites.includes(selectedCourse.id)
-                    ? "♥  Retirer des favoris"
-                    : "♡  Ajouter aux favoris"}
-                </Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => setSelectedCourse(null)}
-                style={({ pressed }) => [
-                  styles.modalCloseButton,
-                  pressed && styles.buttonPressed,
-                ]}
-              >
-                <Text style={styles.modalCloseText}>Fermer</Text>
-              </Pressable>
-              </View>
-            </ScrollView>
-          ) : null}
-        </View>
-      </Modal>
-=======
-
->>>>>>> ca668bae1f09baef64fbc648ec3e40ecbcdb768b
     </SafeAreaView>
   );
 }
@@ -805,13 +645,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.neutral50,
   },
+  courseHero: { minHeight: 144, justifyContent: "flex-end", overflow: "hidden", padding: 17, marginBottom: 14, borderRadius: 17, backgroundColor: colors.green700 },
+  courseHeroImage: { borderRadius: 17 },
+  courseHeroShade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(3, 35, 25, 0.48)" },
+  courseHeroEyebrow: { color: "#E8D69E", fontSize: 9, fontWeight: "800", letterSpacing: 1.1 },
+  courseHeroTitle: { maxWidth: 270, color: colors.white, fontSize: 18, lineHeight: 23, fontWeight: "800", marginTop: 6 },
+  courseHeroSubtitle: { color: "#F3F2EB", fontSize: 11, marginTop: 5 },
   scrollContent: {
-<<<<<<< HEAD
-    paddingHorizontal: 22,
-    paddingTop: 0,
-    paddingBottom: 28,
-  },
-=======
     paddingHorizontal: 20,
     paddingTop: 7,
     paddingBottom: 24,
@@ -862,7 +702,6 @@ const styles = StyleSheet.create({
     fontSize: 21,
     fontWeight: "700",
   },
->>>>>>> ca668bae1f09baef64fbc648ec3e40ecbcdb768b
   intro: {
     marginBottom: 14,
   },
@@ -1274,24 +1113,6 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     flex: 1,
-<<<<<<< HEAD
-    backgroundColor: "#F7F6F1",
-  },
-  modalCard: {
-    flex: 1,
-    backgroundColor: "#F7F6F1",
-  },
-  modalCardContent: { paddingBottom: 26 },
-  modalHero: { height: 230, justifyContent: "space-between", padding: 15, backgroundColor: "#174838" },
-  modalHeroImage: { resizeMode: "cover" },
-  modalHeroShade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(9, 28, 19, 0.42)" },
-  modalCloseIcon: { width: 34, height: 34, alignItems: "center", justifyContent: "center", borderRadius: 17, backgroundColor: "rgba(0,0,0,0.3)" },
-  modalCloseIconText: { color: "#FFFFFF", fontSize: 28, lineHeight: 30 },
-  modalHeroCopy: { marginHorizontal: -15, paddingHorizontal: 15, paddingTop: 10, paddingBottom: 11, backgroundColor: "#FFFFFF", borderTopLeftRadius: 16, borderTopRightRadius: 16 },
-  modalDetails: { padding: 18 },
-  modalRating: { color: "#657269", fontSize: 10, fontWeight: "600" },
-  modalLevel: { alignSelf: "flex-start", color: "#A8794D", fontSize: 9, paddingHorizontal: 8, paddingVertical: 4, marginTop: 8, borderRadius: 10, backgroundColor: "#F9EFE5" },
-=======
     alignItems: "center",
     justifyContent: "flex-end",
     paddingHorizontal: 2,
@@ -1312,7 +1133,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   modalCardContent: { flexGrow: 1, paddingHorizontal: 44, paddingTop: 43, paddingBottom: 28 },
->>>>>>> ca668bae1f09baef64fbc648ec3e40ecbcdb768b
   modalIcon: {
     width: 58,
     height: 58,
@@ -1346,9 +1166,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   modalBook: { color: "#315243", fontSize: 12, fontWeight: "700", marginTop: 12 },
-<<<<<<< HEAD
-  modalTeacher: { color: "#78827B", fontSize: 10, marginTop: 5 },
-=======
   modalTeacher: { color: "#717A73", fontSize: 11, marginTop: 6 },
   partsHeading: { color: "#183D32", fontSize: 16, fontWeight: "800", marginTop: 23, marginBottom: 10 },
   partRow: { minHeight: 66, flexDirection: "row", alignItems: "center", padding: 10, marginTop: 8, borderWidth: 1, borderColor: "#E8E9DF", borderRadius: 13, backgroundColor: "#F8FAF6" },
@@ -1365,7 +1182,6 @@ const styles = StyleSheet.create({
   partContent: { color: "#263B32", fontSize: 15, lineHeight: 27, marginTop: 10, padding: 15, borderRadius: 13, backgroundColor: "#F8F6EF" },
   loginPrompt: { padding: 12, marginTop: 16, borderRadius: 12, backgroundColor: "#F1F5F1", borderWidth: 1, borderColor: "#DCE8DE" },
   loginPromptText: { color: "#315243", fontSize: 12, lineHeight: 18 },
->>>>>>> ca668bae1f09baef64fbc648ec3e40ecbcdb768b
   mediaOpenButton: { minHeight: 44, alignItems: "center", justifyContent: "center", marginTop: 16, borderRadius: 11, backgroundColor: colors.green600 },
   mediaOpenButtonDisabled: { opacity: 0.65 },
   mediaOpenButtonText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },

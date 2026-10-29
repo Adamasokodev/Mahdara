@@ -266,7 +266,7 @@ function Coran({ navigation }) {
           </Pressable>
           <Pressable
             accessibilityRole="button"
-            onPress={() => navigation.navigate("App", { screen: "Bibliothèque" })}
+            onPress={() => navigation.navigate("App", { screen: "Bibliotheque" })}
             style={styles.saveCourseButton}
           >
             <Text style={styles.saveCourseText}>♧  Ajouter à ma bibliothèque</Text>
