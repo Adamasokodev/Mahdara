@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { API_URL } from "../config/api";
 import colors from "../theme/colors";
+import AppHeader from "../components/common/AppHeader";
 
-function Mahadra() {
+function Mahadra({ navigation }) {
   const [mahdaras, setMahadaras] = useState([]);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -54,20 +55,25 @@ function Mahadra() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="dark" />
+    <SafeAreaView edges={["left", "right", "bottom"]} style={styles.safeArea}>
+      <StatusBar style="light" />
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
+        <AppHeader
+          title={selected?.name || "Mahadras"}
+          showBack
+          onBackPress={() => selected ? setSelected(null) : navigation.goBack()}
+          horizontalInset={18}
+        />
+        {!selected ? (
+          <Text style={styles.subtitle}>
+            Découvrez les lieux et communautés qui font vivre l’enseignement traditionnel.
+          </Text>
+        ) : null}
         {selected ? (
           <>
-            <Pressable
-              onPress={() => setSelected(null)}
-              style={styles.backButton}
-            >
-              <Text style={styles.backText}>‹ Toutes les mahadras</Text>
-            </Pressable>
             <View style={styles.detailHero}>
               <Text style={styles.heroIcon}>⌂</Text>
               <Text style={styles.detailTitle}>{selected.name}</Text>
@@ -99,12 +105,6 @@ function Mahadra() {
           </>
         ) : (
           <>
-            <Text style={styles.eyebrow}>SAVOIR & TRANSMISSION</Text>
-            <Text style={styles.title}>Les mahadras</Text>
-            <Text style={styles.subtitle}>
-              Découvrez les lieux et communautés qui font vivre l’enseignement
-              traditionnel.
-            </Text>
             <View style={styles.banner}>
               <Text style={styles.bannerIcon}>⌂</Text>
               <View style={styles.bannerCopy}>
@@ -131,16 +131,23 @@ function Mahadra() {
                   pressed && styles.pressed,
                 ]}
               >
-                <View
+                <ImageBackground
+                  source={{ uri: [
+                    "https://images.unsplash.com/photo-1590075865003-e48277faa558?auto=format&fit=crop&w=900&q=85",
+                    "https://images.unsplash.com/photo-1564769625905-50e93615e769?auto=format&fit=crop&w=900&q=85",
+                    "https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=900&q=85",
+                  ][index % 3] }}
                   style={[
                     styles.cardArt,
                     index === 1 && styles.cardArtGold,
                     index === 2 && styles.cardArtLavender,
                   ]}
+                  imageStyle={styles.cardArtImage}
                 >
+                  <View style={styles.cardArtShade} />
                   <Text style={styles.cardArtIcon}>⌂</Text>
                   <Text style={styles.courseCount}>{item.count}</Text>
-                </View>
+                </ImageBackground>
                 <View style={styles.cardCopy}>
                   <Text style={styles.cardTitle}>{item.name}</Text>
                   <Text style={styles.cardLocation}>⌖ {item.location}</Text>
@@ -161,26 +168,13 @@ function Mahadra() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.neutral50 },
-  content: { paddingHorizontal: 18, paddingTop: 12, paddingBottom: 28 },
-  eyebrow: {
-    color: "#A67A4E",
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1.4,
-  },
-  title: {
-    color: colors.neutral900,
-    fontSize: 27,
-    fontFamily: "Georgia",
-    fontWeight: "700",
-    marginTop: 5,
-  },
+  content: { paddingHorizontal: 18, paddingTop: 0, paddingBottom: 28 },
   subtitle: {
-    color: "#768078",
-    fontSize: 13,
-    lineHeight: 19,
-    marginTop: 7,
-    marginBottom: 18,
+    color: "#53675A",
+    fontSize: 12,
+    lineHeight: 17,
+    paddingHorizontal: 4,
+    paddingTop: 6,
   },
   banner: {
     minHeight: 104,
@@ -222,9 +216,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 19,
     backgroundColor: "#DCE9E1",
   },
+  cardArtImage: { resizeMode: "cover" },
+  cardArtShade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(12, 31, 20, 0.32)" },
   cardArtGold: { backgroundColor: "#F2E8D1" },
   cardArtLavender: { backgroundColor: "#E9E3F2" },
-  cardArtIcon: { color: "#28553F", fontSize: 48 },
+  cardArtIcon: { color: "#FFFFFF", fontSize: 42, zIndex: 1 },
   courseCount: {
     overflow: "hidden",
     color: "#315744",

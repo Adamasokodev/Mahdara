@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AppHeader from "../components/common/AppHeader";
 import { useAuth } from "../context/AuthContext";
 import { API_URL } from "../config/api";
 import colors from "../theme/colors";
@@ -27,27 +28,32 @@ const roleLabels = {
 const toolsByRole = {
   guest: [
     { icon: "▤", title: "Catalogue des cours", description: "Cours publics et extraits", color: "#DCEBE3", action: "courses" },
+    { icon: "▣", title: "Bibliothèque", description: "Livres, poèmes et patrimoine", color: "#F3E9CC", action: "library" },
     { icon: "✦", title: "Cheikhs", description: "Enseignants actifs", color: "#E9E3F2", action: "mahadras" },
     { icon: "⌂", title: "Mahadras", description: "Lieux d’enseignement", color: "#E4ECE8", action: "mahadras" },
   ],
   student: [
     { icon: "▤", title: "Mes cours", description: "Accéder aux cours", color: "#DCEBE3", action: "courses" },
+    { icon: "▣", title: "Bibliothèque", description: "Livres, poèmes et patrimoine", color: "#F3E9CC", action: "library" },
     { icon: "◷", title: "Progression", description: "Suivi bientôt disponible", color: "#F3E9CC", action: "progress" },
     { icon: "⇩", title: "Téléchargements", description: "Bientôt disponible", color: "#E4ECE8", action: "downloads" },
     { icon: "⌂", title: "Les mahadras", description: "Lieux d’enseignement", color: "#E9E3F2", action: "mahadras" },
   ],
   cheikh: [
     { icon: "▤", title: "Gérer mes cours", description: "Créer et organiser", color: "#DCEBE3", action: "courses" },
+    { icon: "▣", title: "Bibliothèque", description: "Livres, poèmes et patrimoine", color: "#F3E9CC", action: "library" },
     { icon: "◷", title: "Statistiques", description: "Bientôt disponible", color: "#F3E9CC", action: "statistics" },
     { icon: "✉", title: "Questions", description: "Réponses bientôt disponibles", color: "#E9E3F2", action: "questions" },
     { icon: "⌂", title: "Ma mahdara", description: "Voir les mahadras", color: "#E4ECE8", action: "mahadras" },
   ],
   assistant: [
     { icon: "▤", title: "Gérer les cours", description: "Au nom du cheikh référent", color: "#DCEBE3", action: "courses" },
+    { icon: "▣", title: "Bibliothèque", description: "Livres, poèmes et patrimoine", color: "#F3E9CC", action: "library" },
     { icon: "⌂", title: "Les mahadras", description: "Lieux d’enseignement", color: "#E4ECE8", action: "mahadras" },
   ],
   admin: [
     { icon: "⚙", title: "Panel web", description: "Gestion complète", color: "#F3E9CC", action: "admin" },
+    { icon: "▣", title: "Bibliothèque", description: "Livres, poèmes et patrimoine", color: "#F3E9CC", action: "library" },
     { icon: "▤", title: "Catalogue des cours", description: "Consulter les cours", color: "#DCEBE3", action: "courses" },
     { icon: "⌂", title: "Mahadras & cheikhs", description: "Consulter les structures", color: "#E4ECE8", action: "mahadras" },
   ],
@@ -68,6 +74,10 @@ function Profil({ navigation }) {
     } catch (error) {
       Alert.alert("Déconnexion", error.message);
     } finally {
+      navigation.getParent()?.reset({
+        index: 0,
+        routes: [{ name: "Welcome" }],
+      });
       setSigningOut(false);
     }
   };
@@ -95,28 +105,18 @@ function Profil({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="dark" />
+    <SafeAreaView edges={["left", "right", "bottom"]} style={styles.safeArea}>
+      <StatusBar style="light" />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <View style={styles.brand}>
-            <Image
-              source={require("../../assets/img/logo_mahdara.jpg")}
-              style={styles.logo}
-              resizeMode="cover"
-            />
-            <View>
-              <Text style={styles.brandName}>Mahdara</Text>
-              <Text style={styles.brandCaption}>SAVOIR & TRANSMISSION</Text>
-            </View>
-          </View>
-          <View style={styles.headerMark}>
-            <Text style={styles.headerMarkText}>م</Text>
-          </View>
-        </View>
+        <AppHeader
+          title="Profil"
+          showBack
+          onBackPress={() => navigation.navigate("Accueil")}
+          horizontalInset={22}
+        />
 
         <View style={styles.intro}>
           <Text style={styles.eyebrow}>VOTRE ESPACE PERSONNEL</Text>
@@ -132,7 +132,9 @@ function Profil({ navigation }) {
           <View style={styles.profileTop}>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>
-                {user?.prenom?.[0]?.toLocaleUpperCase("fr") || "م"}
+                {user
+                  ? `${user.prenom?.[0] || ""}${user.name?.[0] || ""}`.toLocaleUpperCase("fr") || "م"
+                  : "م"}
               </Text>
             </View>
             <View style={styles.profileIdentity}>
@@ -204,18 +206,8 @@ function Profil({ navigation }) {
 
         <View style={styles.sectionHeading}>
           <View>
-            <Text style={styles.sectionEyebrow}>ESPACE {roleLabels[user?.role]?.toLocaleUpperCase("fr") || "VISITEUR"}</Text>
-            <Text style={styles.sectionTitle}>Vos accès</Text>
-          </View>
-          <Text style={styles.sectionOrnament}>۞</Text>
-        </View>
-
-        <View style={styles.sectionHeading}>
-          <View>
-            <Text style={styles.sectionEyebrow}>FONCTIONNALITÉS DU RÔLE</Text>
-            <Text style={styles.sectionTitle}>
-              {roleLabels[user?.role] || "Visiteur"}
-            </Text>
+            <Text style={styles.sectionEyebrow}>VOTRE ESPACE PERSONNEL</Text>
+            <Text style={styles.sectionTitle}>Mon compte</Text>
           </View>
         </View>
 
@@ -227,8 +219,10 @@ function Profil({ navigation }) {
               onPress={() => {
                 if (tool.action === "courses") {
                   navigation.navigate("Cours");
+                } else if (tool.action === "library") {
+                  navigation.navigate("Bibliothèque");
                 } else if (tool.action === "mahadras") {
-                  navigation.navigate("Mahadra");
+                  navigation.getParent()?.navigate("Mahadras");
                 } else if (tool.action === "admin") {
                   openPanel();
                 } else {
@@ -369,54 +363,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 22,
-    paddingTop: 10,
+    paddingTop: 0,
     paddingBottom: 30,
-  },
-  header: {
-    minHeight: 58,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 27,
-  },
-  brand: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  logo: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#FFFFFF",
-    marginRight: 11,
-  },
-  brandName: {
-    color: "#103F32",
-    fontSize: 19,
-    fontWeight: "800",
-    letterSpacing: 0.2,
-  },
-  brandCaption: {
-    color: "#78847C",
-    fontSize: 8,
-    fontWeight: "700",
-    letterSpacing: 1.1,
-    marginTop: 3,
-  },
-  headerMark: {
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#E5DFCC",
-    backgroundColor: "#FFFFFF",
-  },
-  headerMarkText: {
-    color: "#B28B2E",
-    fontSize: 21,
-    fontWeight: "700",
   },
   intro: {
     marginBottom: 21,
@@ -444,7 +392,9 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     padding: 18,
     borderRadius: 21,
-    backgroundColor: "#103F32",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E8E6DE",
   },
   profileDecoration: {
     position: "absolute",
@@ -453,7 +403,7 @@ const styles = StyleSheet.create({
     right: -66,
     top: -100,
     borderWidth: 1,
-    borderColor: "rgba(228, 196, 109, 0.3)",
+    borderColor: "rgba(8, 114, 83, 0.12)",
     borderRadius: 80,
   },
   profileTop: {
@@ -467,11 +417,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 29,
     borderWidth: 2,
-    borderColor: "rgba(228, 196, 109, 0.75)",
-    backgroundColor: "#1C5845",
+    borderColor: "#D5E8DB",
+    backgroundColor: "#E5EFE8",
   },
   avatarText: {
-    color: "#F2D98D",
+    color: colors.green600,
     fontSize: 27,
     fontWeight: "700",
   },
@@ -480,12 +430,12 @@ const styles = StyleSheet.create({
     marginLeft: 13,
   },
   profileName: {
-    color: "#FFFDF6",
+    color: colors.neutral900,
     fontSize: 17,
     fontWeight: "800",
   },
   profileRole: {
-    color: "#D8C781",
+    color: "#718078",
     fontSize: 8,
     fontWeight: "800",
     letterSpacing: 1.1,
@@ -497,15 +447,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 15,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    backgroundColor: "#FBF5E8",
   },
   memberBadgeText: {
-    color: "#E4C46D",
+    color: colors.gold400,
     fontSize: 17,
   },
   profileDivider: {
     height: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.16)",
+    backgroundColor: "#EEECE4",
     marginVertical: 17,
   },
   profileBottom: {
@@ -518,19 +468,19 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   contactLabel: {
-    color: "#B9CCBE",
+    color: "#8A938B",
     fontSize: 8,
     fontWeight: "700",
     letterSpacing: 1.1,
   },
   contactValue: {
-    color: "#FFFFFF",
+    color: colors.neutral900,
     fontSize: 12,
     fontWeight: "600",
     marginTop: 5,
   },
   accountStatus: {
-    color: "#E4C46D",
+    color: colors.green600,
     fontSize: 10,
     fontWeight: "700",
   },
@@ -774,15 +724,14 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   toolsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    gap: 11,
+    gap: 7,
   },
   toolCard: {
-    width: "48%",
-    minHeight: 146,
-    padding: 13,
+    minHeight: 58,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 11,
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: "#EEECE4",
     borderRadius: 16,
@@ -793,8 +742,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#F3F5F0",
   },
   toolIcon: {
-    width: 39,
-    height: 39,
+    width: 34,
+    height: 34,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 12,
@@ -808,19 +757,19 @@ const styles = StyleSheet.create({
     color: "#1C3F34",
     fontSize: 13,
     fontWeight: "800",
-    marginTop: 11,
+    marginTop: 0,
+    marginLeft: 10,
   },
   toolDescription: {
-    maxWidth: 145,
+    flex: 1,
     color: "#858B84",
     fontSize: 10,
     lineHeight: 15,
-    marginTop: 4,
+    marginTop: 0,
+    marginLeft: 7,
   },
   toolArrow: {
-    position: "absolute",
-    right: 12,
-    bottom: 12,
+    marginLeft: 8,
     color: "#B28B2E",
     fontSize: 15,
     fontWeight: "700",

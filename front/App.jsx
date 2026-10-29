@@ -1,13 +1,16 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { Ionicons } from "@expo/vector-icons";
 import { ActivityIndicator, Text, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
 import Login from "./src/auth/Login";
 import Register from "./src/auth/Register";
+import Welcome from "./src/auth/Welcome";
 import Cours from "./src/screen/Cours";
 import Coran from "./src/screen/Coran";
+import Bibliotheque from "./src/screen/Bibliotheque";
 import Home from "./src/screen/Home";
 import Mahadra from "./src/screen/Mahadra";
 import Profil from "./src/screen/Profil";
@@ -18,12 +21,11 @@ const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 const icons = {
-  Accueil: "⌂",
-  Cours: "▤",
-  Coran: "۞",
-  Quiz: "✎",
-  Mahadra: "◉",
-  Profil: "♙",
+  Accueil: { active: "home", inactive: "home-outline" },
+  Cours: { active: "book", inactive: "book-outline" },
+  Bibliothèque: { active: "library", inactive: "library-outline" },
+  Quiz: { active: "checkmark-circle", inactive: "checkmark-circle-outline" },
+  Profil: { active: "person", inactive: "person-outline" },
 };
 
 function AppTabs() {
@@ -35,31 +37,38 @@ function AppTabs() {
         tabBarInactiveTintColor: "#9A9D94",
         tabBarStyle: {
           backgroundColor: "#FFFFFF",
-          borderTopColor: "#EEECE4",
-          height: 62,
+          borderTopColor: "#E8E6DE",
+          borderTopWidth: 1,
+          height: 66,
           paddingBottom: 8,
-          paddingTop: 6,
+          paddingTop: 7,
+          elevation: 8,
+          shadowColor: "#173C2C",
+          shadowOffset: { width: 0, height: -3 },
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
         },
         tabBarLabelStyle: { fontSize: 10, fontWeight: "700" },
-        tabBarIcon: ({ focused }) => (
-          <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.5 }}>
-            {icons[route.name]}
-          </Text>
+        tabBarIcon: ({ focused, color }) => (
+          <Ionicons
+            name={focused ? icons[route.name].active : icons[route.name].inactive}
+            size={22}
+            color={color}
+          />
         ),
       })}
     >
       <Tab.Screen name="Accueil" component={Home} />
       <Tab.Screen name="Cours" component={Cours} />
-      <Tab.Screen name="Coran" component={Coran} />
+      <Tab.Screen name="Bibliothèque" component={Bibliotheque} />
       <Tab.Screen name="Quiz" component={Quiz} />
-      <Tab.Screen name="Mahadra" component={Mahadra} />
       <Tab.Screen name="Profil" component={Profil} />
     </Tab.Navigator>
   );
 }
 
 function RootNavigator() {
-  const { loading } = useAuth();
+  const { loading, token } = useAuth();
 
   if (loading) {
     return (
@@ -70,8 +79,11 @@ function RootNavigator() {
   }
 
   return (
-    <Stack.Navigator initialRouteName="App" screenOptions={{ headerShown: false }}>
+    <Stack.Navigator initialRouteName={token ? "App" : "Welcome"} screenOptions={{ headerShown: false }}>
       <Stack.Screen name="App" component={AppTabs} />
+      <Stack.Screen name="Welcome" component={Welcome} />
+      <Stack.Screen name="CoranDetail" component={Coran} />
+      <Stack.Screen name="Mahadras" component={Mahadra} />
       <Stack.Screen name="Login" component={Login} />
       <Stack.Screen name="Register" component={Register} />
     </Stack.Navigator>

@@ -188,15 +188,20 @@ function Register({ navigation }) {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
+            <Text
+              style={styles.backLink}
+              onPress={() => navigation.navigate("Welcome")}
+              accessibilityRole="link"
+            >
+              ‹  Retour
+            </Text>
             <Image
               source={require("../../assets/img/logo_mahdara.jpg")}
               style={styles.logo}
             />
-            <Text style={styles.eyebrow}>SAVOIR & TRANSMISSION</Text>
-            <Text style={styles.title}>Inscription</Text>
+            <Text style={styles.title}>Créer un compte</Text>
             <Text style={styles.subtitle}>
-              Créez votre compte étudiant pour accéder aux cours. Les rôles de
-              cheikh, assistant et administrateur sont attribués par l’équipe.
+              Rejoignez Mahdara et accédez à une bibliothèque riche et inspirante.
             </Text>
           </View>
 
@@ -210,7 +215,7 @@ function Register({ navigation }) {
 
             {/* Nom */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>👤 Nom</Text>
+              <Text style={styles.inputLabel}>Nom</Text>
               <TextInput
                 style={styles.input}
                 placeholder="Votre nom de famille"
@@ -226,7 +231,7 @@ function Register({ navigation }) {
 
             {/* Prénom */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>👤 Prénom</Text>
+              <Text style={styles.inputLabel}>Prénom</Text>
               <TextInput
                 style={styles.input}
                 placeholder="Votre prénom"
@@ -242,7 +247,7 @@ function Register({ navigation }) {
 
             {/* Téléphone */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>📱 Téléphone</Text>
+              <Text style={styles.inputLabel}>Numéro de téléphone</Text>
               <TextInput
                 style={styles.input}
                 placeholder="46565458 ou +222 46565458"
@@ -258,7 +263,7 @@ function Register({ navigation }) {
 
             {/* Email */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>🆔 Email</Text>
+              <Text style={styles.inputLabel}>Adresse e-mail</Text>
               <TextInput
                 style={styles.input}
                 placeholder="Votre email"
@@ -276,11 +281,11 @@ function Register({ navigation }) {
 
             {/* Mot de passe */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>🔑 Mot de passe</Text>
+              <Text style={styles.inputLabel}>Mot de passe</Text>
               <View style={styles.passwordContainer}>
                 <TextInput
                   style={styles.passwordInput}
-                  placeholder="Entrez un mot de passe sécurisé"
+                  placeholder="Minimum 8 caractères"
                   placeholderTextColor="#999"
                   value={password}
                   onChangeText={handlePasswordChange}
@@ -349,12 +354,12 @@ function Register({ navigation }) {
             {/* Confirmer le mot de passe */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>
-                🔑 Confirmer le mot de passe
+              Confirmer le mot de passe
               </Text>
               <View style={styles.passwordContainer}>
                 <TextInput
                   style={styles.passwordInput}
-                  placeholder="Confirmez votre mot de passe"
+                  placeholder="Répétez votre mot de passe"
                   placeholderTextColor="#999"
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
@@ -411,7 +416,7 @@ function Register({ navigation }) {
               {loading ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Text style={styles.buttonText}>S'inscrire</Text>
+                <Text style={styles.buttonText}>Créer mon compte</Text>
               )}
             </TouchableOpacity>
 
@@ -444,18 +449,25 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     justifyContent: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 24,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
   },
   header: {
     alignItems: "center",
-    marginBottom: 25,
+    marginBottom: 14,
+  },
+  backLink: {
+    alignSelf: "flex-start",
+    color: "#56675D",
+    fontSize: 11,
+    fontWeight: "700",
+    paddingVertical: 8,
   },
   logo: {
-    width: 76,
-    height: 76,
-    borderRadius: 24,
-    marginBottom: 15,
+    width: 43,
+    height: 43,
+    borderRadius: 22,
+    marginBottom: 9,
     backgroundColor: "#FFFFFF",
   },
   eyebrow: {
@@ -466,37 +478,37 @@ const styles = StyleSheet.create({
     marginBottom: 7,
   },
   title: {
-    fontSize: 30,
+    fontSize: 21,
     fontWeight: "800",
-    color: colors.neutral900,
-    marginBottom: 6,
+    color: "#22352B",
+    marginBottom: 4,
     textAlign: "center",
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 10,
     color: "#717A73",
-    lineHeight: 20,
+    lineHeight: 15,
     textAlign: "center",
-    maxWidth: 310,
+    maxWidth: 290,
   },
   container: {
     width: "100%",
-    maxWidth: 400,
+    maxWidth: 410,
     alignSelf: "center",
     backgroundColor: "#FFFFFF",
-    borderColor: "#EEECE4",
+    borderColor: "#E9E7DF",
     borderWidth: 1,
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 15,
+    padding: 15,
   },
   inputGroup: {
-    marginBottom: 16,
+    marginBottom: 10,
   },
   inputLabel: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: "700",
-    color: "#315243",
-    marginBottom: 7,
+    color: "#34473C",
+    marginBottom: 4,
   },
   errorContainer: {
     flexDirection: "row",
@@ -504,8 +516,8 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: "#C8493D",
     borderRadius: 10,
-    padding: 11,
-    marginBottom: 17,
+    padding: 9,
+    marginBottom: 11,
     alignItems: "center",
   },
   errorIcon: {
@@ -514,42 +526,42 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: "#A6352C",
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: "600",
     flex: 1,
   },
   input: {
-    minHeight: 48,
+    minHeight: 40,
     borderWidth: 1,
-    borderColor: "#E8E5DA",
-    borderRadius: 11,
-    paddingHorizontal: 13,
-    paddingVertical: 11,
-    fontSize: 14,
-    backgroundColor: "#FBFAF6",
+    borderColor: "#E8E6DE",
+    borderRadius: 9,
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+    fontSize: 11,
+    backgroundColor: "#FFFFFF",
     color: "#183D32",
   },
   passwordContainer: {
-    minHeight: 48,
+    minHeight: 40,
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#E8E5DA",
-    borderRadius: 11,
-    backgroundColor: "#FBFAF6",
+    borderColor: "#E8E6DE",
+    borderRadius: 9,
+    backgroundColor: "#FFFFFF",
     paddingRight: 8,
   },
   passwordInput: {
     flex: 1,
-    paddingHorizontal: 13,
-    paddingVertical: 11,
-    fontSize: 14,
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+    fontSize: 11,
     color: "#183D32",
   },
   togglePassword: {
-    fontSize: 17,
-    paddingHorizontal: 9,
-    paddingVertical: 7,
+    fontSize: 14,
+    paddingHorizontal: 7,
+    paddingVertical: 6,
   },
   strengthContainer: {
     height: 6,
@@ -570,7 +582,7 @@ const styles = StyleSheet.create({
   termsContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 17,
+    marginBottom: 12,
     paddingHorizontal: 4,
   },
   checkbox: {
@@ -593,16 +605,18 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   termsText: {
-    fontSize: 12,
+    fontSize: 10,
     color: "#555",
     flex: 1,
   },
   button: {
     backgroundColor: colors.green600,
-    padding: 16,
+    minHeight: 43,
+    justifyContent: "center",
+    padding: 12,
     borderRadius: 10,
     alignItems: "center",
-    marginTop: 10,
+    marginTop: 6,
     shadowColor: "#103F32",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -615,15 +629,15 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: "#FFFFFF",
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: "700",
     letterSpacing: 0.5,
   },
   footerText: {
-    fontSize: 13,
+    fontSize: 10,
     color: "#717A73",
     textAlign: "center",
-    marginTop: 20,
+    marginTop: 13,
   },
   link: {
     color: colors.green600,

@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Image,
+  ImageBackground,
   Linking,
   Modal,
   Pressable,
@@ -18,96 +18,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import colors from "../theme/colors";
 import { useAuth } from "../context/AuthContext";
 import { API_URL } from "../config/api";
+import { getCoursePlaceholder, toCatalogCourse } from "../utils/courseCatalog";
+import AppHeader from "../components/common/AppHeader";
 
-const categories = ["Tout"];
-
-const courses = [
-  {
-    id: "coran-lecture",
-    title: "Premiers pas dans la lecture du Coran",
-    category: "Le Coran",
-    description:
-      "Découvrez les lettres arabes et les bases pour lire le Coran avec confiance.",
-    level: "Débutant",
-    duration: 25,
-    icon: "📖",
-    color: "#F3E9CC",
-  },
-  {
-    id: "coran-recitation",
-    title: "Les règles essentielles de récitation",
-    category: "Le Coran",
-    description:
-      "Approfondissez les règles de récitation et avancez à votre rythme.",
-    level: "Intermédiaire",
-    duration: 35,
-    icon: "۞",
-    color: "#E9E3F2",
-  },
-  {
-    id: "arabe-alphabet",
-    title: "L’alphabet arabe, pas à pas",
-    category: "Langue arabe",
-    description:
-      "Familiarisez-vous avec les lettres, leurs sons et leurs différentes formes.",
-    level: "Débutant",
-    duration: 20,
-    icon: "أ",
-    color: "#DCEBE3",
-  },
-  {
-    id: "arabe-vocabulaire",
-    title: "Vocabulaire arabe du quotidien",
-    category: "Langue arabe",
-    description:
-      "Enrichissez votre vocabulaire et progressez dans la compréhension de l’arabe.",
-    level: "Intermédiaire",
-    duration: 30,
-    icon: "ع",
-    color: "#E4ECE8",
-  },
-  {
-    id: "foi-fondements",
-    title: "Les fondements de la foi",
-    category: "Sciences islamiques",
-    description:
-      "Une introduction accessible aux notions essentielles des sciences islamiques.",
-    level: "Débutant",
-    duration: 30,
-    icon: "🌙",
-    color: "#E9E3F2",
-  },
-  {
-    id: "vie-prophete",
-    title: "À la découverte de la vie du Prophète",
-    category: "Sciences islamiques",
-    description:
-      "Parcourez les grands repères de la vie et des enseignements du Prophète.",
-    level: "Intermédiaire",
-    duration: 40,
-    icon: "✦",
-    color: "#F3E9CC",
-  },
-];
-
-const toPublishedCourse = (course) => ({
-  id: `published-${course.id}`,
-  serverId: course.id,
-  title: course.titre,
-  category: course.matiere,
-  description: course.contenu || course.description || "",
-  level: course.niveau,
-  duration: course.duree_minutes,
-  book: course.livre,
-  mediaType: course.type_media,
-  mediaUrl: course.fichier_url,
-  excerptUrl: course.extrait_url,
-  teacher: [course.cheikh?.user?.prenom, course.cheikh?.user?.name].filter(Boolean).join(" "),
-  icon: course.type_media === "video" ? "▶" : "♫",
-  color: "#DCEBE3",
-});
-
-function Cours() {
+function Cours({ navigation, route }) {
   const { token } = useAuth();
   const [publishedCourses, setPublishedCourses] = useState([]);
   const [canPublish, setCanPublish] = useState(false);
@@ -122,6 +36,7 @@ function Cours() {
     fichier_url: "", extrait_url: "", niveau: "Débutant", duree_minutes: "",
   });
   const [search, setSearch] = useState("");
+  const searchRef = useRef(null);
   const [selectedCategory, setSelectedCategory] = useState("Tout");
   const [favorites, setFavorites] = useState([]);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
@@ -140,6 +55,8 @@ function Cours() {
       Accept: "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
+    setPublishedCourses([]);
+    setCourseError("");
     if (token) {
       fetch(`${API_URL}/user`, { headers })
         .then((response) => response.ok ? response.json() : Promise.reject(new Error("Profil indisponible")))
@@ -161,7 +78,8 @@ function Cours() {
       .then((response) => response.ok ? response.json() : Promise.reject(new Error("Cours indisponibles")))
       .then((data) => {
         if (!active) return;
-        setPublishedCourses((Array.isArray(data) ? data : []).map(toPublishedCourse));
+        if (!Array.isArray(data)) throw new Error("La réponse des cours est invalide.");
+        setPublishedCourses(data.map(toCatalogCourse));
       })
       .catch(() => { if (active) setCourseError("Les cours publiés ne sont pas accessibles pour le moment."); })
       .finally(() => { if (active) setLoadingCourses(false); });
@@ -169,8 +87,11 @@ function Cours() {
     return () => { active = false; };
   }, [token]);
 
-  const allCourses = useMemo(() => publishedCourses, [publishedCourses]);
-  const courseCategories = useMemo(() => ["Tout", ...new Set(publishedCourses.map((course) => course.category).filter(Boolean))], [publishedCourses]);
+  const allCourses = publishedCourses;
+  const courseCategories = useMemo(
+    () => ["Tout", ...new Set(allCourses.map((course) => course.category).filter(Boolean))],
+    [allCourses],
+  );
 
   const filteredCourses = useMemo(() => {
     const normalizedSearch = search.trim().toLocaleLowerCase("fr");
@@ -180,7 +101,7 @@ function Cours() {
       selectedCategory === "Tout" || course.category === selectedCategory;
       const matchesSearch =
         !normalizedSearch ||
-        `${course.title} ${course.category} ${course.level} ${course.book || ""}`
+        `${course.title} ${course.category} ${course.level} ${course.book} ${course.teacher} ${course.description} ${course.mahdara}`
           .toLocaleLowerCase("fr")
           .includes(normalizedSearch);
       const matchesFavorites =
@@ -189,6 +110,15 @@ function Cours() {
       return matchesCategory && matchesSearch && matchesFavorites;
     });
   }, [allCourses, favorites, favoritesOnly, search, selectedCategory]);
+
+  useEffect(() => {
+    const requestedCourseId = route?.params?.courseId;
+    if (requestedCourseId == null) return;
+    const requestedCourse = allCourses.find(
+      (course) => String(course.serverId) === String(requestedCourseId),
+    );
+    if (requestedCourse) setSelectedCourse(requestedCourse);
+  }, [allCourses, route?.params?.courseId, route?.params?.courseSelectionKey]);
 
   const updateDraft = (key, value) => setDraft((current) => ({ ...current, [key]: value }));
 
@@ -278,7 +208,7 @@ function Cours() {
         throw new Error(validation || "Le cours n’a pas pu être publié.");
       }
       const course = result.cours;
-      const updatedCourse = toPublishedCourse(course);
+      const updatedCourse = toCatalogCourse(course);
       setPublishedCourses((current) => editingCourseId
         ? current.map((item) => item.serverId === editingCourseId ? updatedCourse : item)
         : [updatedCourse, ...current]);
@@ -362,29 +292,21 @@ function Cours() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="dark" />
+    <SafeAreaView edges={["left", "right", "bottom"]} style={styles.safeArea}>
+      <StatusBar style="light" />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <View style={styles.brand}>
-            <Image
-              source={require("../../assets/img/logo_mahdara.jpg")}
-              style={styles.logo}
-              resizeMode="cover"
-            />
-            <View>
-              <Text style={styles.brandName}>Mahdara</Text>
-              <Text style={styles.brandCaption}>SAVOIR & TRANSMISSION</Text>
-            </View>
-          </View>
-          <View style={styles.headerMark}>
-            <Text style={styles.headerMarkText}>م</Text>
-          </View>
-        </View>
+        <AppHeader
+          title="Cours"
+          showBack
+          rightIcon="search-outline"
+          onBackPress={() => navigation.navigate("Accueil")}
+          onRightPress={() => searchRef.current?.focus()}
+          horizontalInset={22}
+        />
 
         <View style={styles.intro}>
           <Text style={styles.eyebrow}>APPRENDRE À SON RYTHME</Text>
@@ -481,35 +403,43 @@ function Cours() {
         {loadingCourses ? <ActivityIndicator color={colors.green600} style={styles.courseLoader} /> : null}
         {!loadingCourses && courseError && (!canPublish || !showCourseForm) ? <Text style={styles.loadError}>{courseError}</Text> : null}
 
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => setSelectedCourse(courses[0])}
-          style={({ pressed }) => [
-            styles.featuredCard,
-            pressed && styles.buttonPressed,
-          ]}
-        >
-          <View style={styles.featuredOrb} />
-          <View style={styles.featuredCopy}>
-            <Text style={styles.featuredEyebrow}>À DÉCOUVRIR</Text>
-            <Text style={styles.featuredTitle}>
-              Premiers pas dans la lecture du Coran
-            </Text>
-            <Text style={styles.featuredMeta}>Le Coran  ·  25 min  ·  Débutant</Text>
-            <View style={styles.featuredButton}>
-              <Text style={styles.featuredButtonText}>Voir le cours</Text>
-              <Text style={styles.featuredArrow}>→</Text>
+        {allCourses[0] ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setSelectedCourse(allCourses[0])}
+            style={({ pressed }) => [
+              styles.featuredCard,
+              pressed && styles.buttonPressed,
+            ]}
+          >
+            <ImageBackground
+              source={{ uri: allCourses[0].image || getCoursePlaceholder(allCourses[0].category) }}
+              style={styles.featuredImage}
+              imageStyle={styles.featuredImageCorners}
+            >
+              <View style={styles.featuredImageShade} />
+            </ImageBackground>
+            <View style={styles.featuredCopy}>
+              <Text style={styles.featuredEyebrow}>À DÉCOUVRIR</Text>
+              <Text style={styles.featuredTitle}>{allCourses[0].title}</Text>
+              <Text style={styles.featuredMeta}>
+                {allCourses[0].category}
+                {allCourses[0].duration ? `  ·  ${allCourses[0].duration} min` : ""}
+                {allCourses[0].level ? `  ·  ${allCourses[0].level}` : ""}
+              </Text>
+              <View style={styles.featuredButton}>
+                <Text style={styles.featuredButtonText}>Voir le cours</Text>
+                <Text style={styles.featuredArrow}>→</Text>
+              </View>
             </View>
-          </View>
-          <View style={styles.featuredSeal}>
-            <Text style={styles.featuredSealText}>۞</Text>
-          </View>
-        </Pressable>
+          </Pressable>
+        ) : null}
 
         <View style={styles.searchBox}>
           <Text style={styles.searchIcon}>⌕</Text>
           <TextInput
             accessibilityLabel="Rechercher un cours"
+            ref={searchRef}
             value={search}
             onChangeText={setSearch}
             placeholder="Rechercher un cours ou un domaine"
@@ -600,14 +530,14 @@ function Cours() {
 
               return (
                 <View key={course.id} style={styles.courseCard}>
-                  <View
-                    style={[
-                      styles.courseIcon,
-                      { backgroundColor: course.color },
-                    ]}
+                  <ImageBackground
+                    source={{ uri: course.image || getCoursePlaceholder(course.category) }}
+                    style={[styles.courseIcon, { backgroundColor: course.color }]}
+                    imageStyle={styles.courseIconImage}
                   >
+                    <View style={styles.courseIconShade} />
                     <Text style={styles.courseIconText}>{course.icon}</Text>
-                  </View>
+                  </ImageBackground>
                   <View style={styles.courseBody}>
                     <View style={styles.courseMeta}>
                       <Text style={styles.courseCategory}>
@@ -714,32 +644,38 @@ function Cours() {
       </ScrollView>
 
       <Modal
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setSelectedCourse(null)}
-        transparent
         visible={selectedCourse !== null}
       >
         <View style={styles.modalBackdrop}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Fermer les détails du cours"
-            onPress={() => setSelectedCourse(null)}
-            style={StyleSheet.absoluteFill}
-          />
           {selectedCourse ? (
             <ScrollView style={styles.modalCard} contentContainerStyle={styles.modalCardContent} showsVerticalScrollIndicator={false}>
-              <View
-                style={[
-                  styles.modalIcon,
-                  { backgroundColor: selectedCourse.color },
-                ]}
+              <ImageBackground
+                source={{ uri: "https://images.unsplash.com/photo-1609599006353-e629aaabfeae?auto=format&fit=crop&w=1000&q=85" }}
+                style={styles.modalHero}
+                imageStyle={styles.modalHeroImage}
               >
-                <Text style={styles.modalIconText}>{selectedCourse.icon}</Text>
-              </View>
-              <Text style={styles.modalCategory}>
-                {selectedCourse.category.toLocaleUpperCase("fr")}
+                <View style={styles.modalHeroShade} />
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Fermer les détails du cours"
+                  onPress={() => setSelectedCourse(null)}
+                  style={styles.modalCloseIcon}
+                >
+                  <Text style={styles.modalCloseIconText}>‹</Text>
+                </Pressable>
+                <View style={styles.modalHeroCopy}>
+                  <Text style={styles.modalCategory}>{selectedCourse.category.toLocaleUpperCase("fr")}</Text>
+                  <Text style={styles.modalTitle}>{selectedCourse.title}</Text>
+                  <Text style={styles.modalTeacher}>{selectedCourse.teacher || "Enseignants de la Mahdara"}</Text>
+                </View>
+              </ImageBackground>
+              <View style={styles.modalDetails}>
+              <Text style={styles.modalRating}>
+                {selectedCourse.duration ? `◷ ${selectedCourse.duration} min` : "Durée non précisée"}
               </Text>
-              <Text style={styles.modalTitle}>{selectedCourse.title}</Text>
+              <Text style={styles.modalLevel}>{selectedCourse.level}</Text>
               {selectedCourse.description ? <Text style={styles.lessonTextHeading}>Texte du cours</Text> : null}
               <Text style={styles.modalDescription}>
                 {selectedCourse.description}
@@ -754,7 +690,8 @@ function Cours() {
                 </Text>
               </View>
               {selectedCourse.book ? <Text style={styles.modalBook}>Livre étudié : {selectedCourse.book}</Text> : null}
-              {selectedCourse.teacher ? <Text style={styles.modalTeacher}>Enseignant : {selectedCourse.teacher}</Text> : null}
+              {selectedCourse.mahdara ? <Text style={styles.modalBook}>Mahdara : {selectedCourse.mahdara}</Text> : null}
+              {selectedCourse.language ? <Text style={styles.modalBook}>Langue : {selectedCourse.language}</Text> : null}
               {selectedCourse.mediaUrl ? (
                 <Pressable accessibilityRole="button" onPress={() => selectedCourse.mediaType === "video" ? Linking.openURL(selectedCourse.mediaUrl) : (audioPlayer.playing ? audioPlayer.pause() : audioPlayer.play())} style={styles.mediaOpenButton}>
                   <Text style={styles.mediaOpenButtonText}>{selectedCourse.mediaType === "video" ? "Voir la vidéo" : audioPlayer.playing ? "Mettre en pause" : "▶ Écouter le cours"}</Text>
@@ -789,6 +726,7 @@ function Cours() {
               >
                 <Text style={styles.modalCloseText}>Fermer</Text>
               </Pressable>
+              </View>
             </ScrollView>
           ) : null}
         </View>
@@ -804,54 +742,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 22,
-    paddingTop: 10,
+    paddingTop: 0,
     paddingBottom: 28,
-  },
-  header: {
-    minHeight: 58,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 28,
-  },
-  brand: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  logo: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#FFFFFF",
-    marginRight: 11,
-  },
-  brandName: {
-    color: "#103F32",
-    fontSize: 19,
-    fontWeight: "800",
-    letterSpacing: 0.2,
-  },
-  brandCaption: {
-    color: "#78847C",
-    fontSize: 8,
-    fontWeight: "700",
-    letterSpacing: 1.1,
-    marginTop: 3,
-  },
-  headerMark: {
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#E5DFCC",
-    backgroundColor: "#FFFFFF",
-  },
-  headerMarkText: {
-    color: "#B28B2E",
-    fontSize: 21,
-    fontWeight: "700",
   },
   intro: {
     marginBottom: 20,
@@ -909,24 +801,16 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   featuredCard: {
-    minHeight: 176,
-    flexDirection: "row",
+    minHeight: 126,
     overflow: "hidden",
-    padding: 18,
+    padding: 14,
     marginBottom: 22,
-    borderRadius: 19,
-    backgroundColor: "#103F32",
+    borderRadius: 16,
+    backgroundColor: "#174838",
   },
-  featuredOrb: {
-    position: "absolute",
-    width: 160,
-    height: 160,
-    top: -86,
-    right: -34,
-    borderWidth: 1,
-    borderColor: "rgba(228, 196, 109, 0.35)",
-    borderRadius: 80,
-  },
+  featuredImage: { ...StyleSheet.absoluteFillObject },
+  featuredImageCorners: { borderRadius: 16 },
+  featuredImageShade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(9, 28, 19, 0.55)" },
   featuredCopy: {
     flex: 1,
     justifyContent: "center",
@@ -939,7 +823,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.4,
   },
   featuredTitle: {
-    maxWidth: 240,
+    maxWidth: 270,
     color: "#FFFDF6",
     fontSize: 19,
     fontWeight: "800",
@@ -971,22 +855,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     marginLeft: 8,
-  },
-  featuredSeal: {
-    width: 45,
-    height: 45,
-    alignItems: "center",
-    justifyContent: "center",
-    alignSelf: "center",
-    borderWidth: 1,
-    borderColor: "rgba(228, 196, 109, 0.5)",
-    borderRadius: 23,
-    backgroundColor: "rgba(255, 255, 255, 0.07)",
-    marginLeft: 6,
-  },
-  featuredSealText: {
-    color: "#E4C46D",
-    fontSize: 26,
   },
   searchBox: {
     minHeight: 52,
@@ -1114,10 +982,13 @@ const styles = StyleSheet.create({
     height: 47,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
     borderRadius: 14,
   },
+  courseIconImage: { borderRadius: 14 },
+  courseIconShade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(12, 35, 23, 0.32)" },
   courseIconText: {
-    color: "#24483A",
+    color: "#FFFFFF",
     fontSize: 23,
     fontWeight: "700",
   },
@@ -1279,21 +1150,22 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 22,
-    backgroundColor: "rgba(18, 39, 31, 0.55)",
+    backgroundColor: "#F7F6F1",
   },
   modalCard: {
-    width: "100%",
-    maxWidth: 420,
-    maxHeight: "88%",
-    padding: 23,
-    borderRadius: 22,
-    backgroundColor: "#FFFFFF",
-    overflow: "hidden",
+    flex: 1,
+    backgroundColor: "#F7F6F1",
   },
-  modalCardContent: { padding: 23 },
+  modalCardContent: { paddingBottom: 26 },
+  modalHero: { height: 230, justifyContent: "space-between", padding: 15, backgroundColor: "#174838" },
+  modalHeroImage: { resizeMode: "cover" },
+  modalHeroShade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(9, 28, 19, 0.42)" },
+  modalCloseIcon: { width: 34, height: 34, alignItems: "center", justifyContent: "center", borderRadius: 17, backgroundColor: "rgba(0,0,0,0.3)" },
+  modalCloseIconText: { color: "#FFFFFF", fontSize: 28, lineHeight: 30 },
+  modalHeroCopy: { marginHorizontal: -15, paddingHorizontal: 15, paddingTop: 10, paddingBottom: 11, backgroundColor: "#FFFFFF", borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  modalDetails: { padding: 18 },
+  modalRating: { color: "#657269", fontSize: 10, fontWeight: "600" },
+  modalLevel: { alignSelf: "flex-start", color: "#A8794D", fontSize: 9, paddingHorizontal: 8, paddingVertical: 4, marginTop: 8, borderRadius: 10, backgroundColor: "#F9EFE5" },
   modalIcon: {
     width: 58,
     height: 58,
@@ -1308,17 +1180,17 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   modalCategory: {
-    color: "#B28B2E",
+    color: colors.green600,
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.3,
   },
   modalTitle: {
     color: "#183D32",
-    fontSize: 23,
+    fontSize: 18,
     fontWeight: "800",
     lineHeight: 29,
-    marginTop: 7,
+    marginTop: 5,
   },
   modalDescription: {
     color: "#717A73",
@@ -1327,7 +1199,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   modalBook: { color: "#315243", fontSize: 12, fontWeight: "700", marginTop: 12 },
-  modalTeacher: { color: "#717A73", fontSize: 11, marginTop: 6 },
+  modalTeacher: { color: "#78827B", fontSize: 10, marginTop: 5 },
   mediaOpenButton: { minHeight: 44, alignItems: "center", justifyContent: "center", marginTop: 16, borderRadius: 11, backgroundColor: colors.green600 },
   mediaOpenButtonText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   lessonTextHeading: { color: "#183D32", fontSize: 13, fontWeight: "800", marginTop: 17 },

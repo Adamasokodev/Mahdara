@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  ImageBackground,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,6 +11,7 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AppHeader from "../components/common/AppHeader";
 import {
   setAudioModeAsync,
   useAudioPlayer,
@@ -42,7 +44,7 @@ function formatTime(seconds = 0) {
   return `${minutes}:${remainingSeconds}`;
 }
 
-function Coran() {
+function Coran({ navigation }) {
   const [surahs, setSurahs] = useState([]);
   const [reciters, setReciters] = useState([]);
   const [language, setLanguage] = useState("eng");
@@ -211,16 +213,56 @@ function Coran() {
     : 0;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="dark" />
+    <SafeAreaView edges={["left", "right", "bottom"]} style={styles.safeArea}>
+      <StatusBar style="light" />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <View style={styles.headerAccent} />
-          <View style={styles.headerCopy}>
-            <Text style={styles.eyebrow}>LECTURE & RÉCITATION</Text>
-            <Text style={styles.title}>Le Coran</Text>
+        <AppHeader
+          title="Coran"
+          showBack
+          onBackPress={() => navigation.goBack()}
+          horizontalInset={18}
+        />
+
+        <ImageBackground
+          source={{ uri: "https://images.unsplash.com/photo-1609599006353-e629aaabfeae?auto=format&fit=crop&w=1000&q=85" }}
+          style={styles.courseHero}
+          imageStyle={styles.courseHeroImage}
+        >
+          <View style={styles.courseHeroShade} />
+          <View style={styles.availableBadge}><Text style={styles.availableText}>Disponible  ◉</Text></View>
+          <View style={styles.courseHeroCopy}>
+            <Text style={styles.courseHeroTitle}>La lecture du Coran</Text>
+            <Text style={styles.courseHeroMeta}>۞  Le Coran</Text>
           </View>
-          <View style={styles.headerSeal}><Text style={styles.sealText}>۞</Text></View>
+        </ImageBackground>
+
+        <View style={styles.courseOverview}>
+          <Text style={styles.courseRating}>★ 4,8  (124 avis)       ◷ 10 min</Text>
+          <Text style={styles.levelLabel}>Débutant</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: loadingAyahs || loadingCatalog || !canPlaySurah }}
+            disabled={loadingAyahs || loadingCatalog || !canPlaySurah}
+            onPress={togglePlayback}
+            style={({ pressed }) => [styles.startCourseButton, pressed && styles.playPressed]}
+          >
+            <Text style={styles.startCourseText}>{playback.playing ? "Ⅱ  Mettre en pause" : "▶  Commencer le cours"}</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => navigation.navigate("App", { screen: "Bibliothèque" })}
+            style={styles.saveCourseButton}
+          >
+            <Text style={styles.saveCourseText}>♧  Ajouter à ma bibliothèque</Text>
+          </Pressable>
+          <Text style={styles.sectionTitle}>Description</Text>
+          <Text style={styles.courseDescription}>
+            Ce cours vous permet d’apprendre les bases de la lecture du Saint Coran : les règles de prononciation, le tajwid et la bonne lecture des lettres arabes.
+          </Text>
+          <Text style={styles.sectionTitle}>Ce que vous allez apprendre</Text>
+          <Text style={styles.learningPoint}>✓  Les lettres de l’alphabet arabe</Text>
+          <Text style={styles.learningPoint}>✓  Les règles de base du tajwid</Text>
+          <Text style={styles.learningPoint}>✓  La lecture correcte des versets</Text>
         </View>
 
         <View style={styles.catalogHeading}>
@@ -421,14 +463,24 @@ function Coran() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.neutral50 },
-  content: { paddingHorizontal: 18, paddingTop: 12, paddingBottom: 28 },
-  header: { flexDirection: "row", alignItems: "center", marginBottom: 18 },
-  headerAccent: { width: 4, height: 40, borderRadius: 2, backgroundColor: colors.green600, marginRight: 12 },
-  headerCopy: { flex: 1 },
-  eyebrow: { color: "#8A938B", fontSize: 9, fontWeight: "800", letterSpacing: 1.3 },
-  title: { color: colors.neutral900, fontSize: 26, fontFamily: "Georgia", fontWeight: "700", marginTop: 2 },
-  headerSeal: { width: 42, height: 42, alignItems: "center", justifyContent: "center", borderRadius: 14, backgroundColor: "#EAF1EB" },
-  sealText: { color: colors.green600, fontSize: 25 },
+  content: { paddingHorizontal: 18, paddingTop: 0, paddingBottom: 28 },
+  courseHero: { height: 202, justifyContent: "space-between", padding: 13, marginHorizontal: -18, backgroundColor: "#1C4937" },
+  courseHeroImage: { resizeMode: "cover" },
+  courseHeroShade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(12, 24, 17, 0.3)" },
+  availableBadge: { alignSelf: "flex-end", paddingHorizontal: 9, paddingVertical: 5, borderRadius: 12, backgroundColor: "#FFFFFF" },
+  availableText: { color: colors.green600, fontSize: 9, fontWeight: "800" },
+  courseHeroCopy: { marginHorizontal: -13, paddingHorizontal: 15, paddingTop: 10, paddingBottom: 11, backgroundColor: "#FFFFFF", borderTopLeftRadius: 15, borderTopRightRadius: 15 },
+  courseHeroTitle: { color: "#24362D", fontSize: 17, fontWeight: "800" },
+  courseHeroMeta: { color: "#7A847D", fontSize: 10, marginTop: 5 },
+  courseOverview: { paddingHorizontal: 12, paddingTop: 11, paddingBottom: 12, marginHorizontal: -5, borderRadius: 15, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E9E8E1" },
+  courseRating: { color: "#657269", fontSize: 10, fontWeight: "600" },
+  levelLabel: { alignSelf: "flex-start", color: "#A8794D", fontSize: 9, paddingHorizontal: 8, paddingVertical: 4, marginTop: 8, borderRadius: 10, backgroundColor: "#F9EFE5" },
+  startCourseButton: { minHeight: 39, alignItems: "center", justifyContent: "center", marginTop: 10, borderRadius: 12, backgroundColor: colors.green600 },
+  startCourseText: { color: "#FFFFFF", fontSize: 11, fontWeight: "800" },
+  saveCourseButton: { minHeight: 35, alignItems: "center", justifyContent: "center", marginTop: 6, borderWidth: 1, borderColor: "#E5E8E3", borderRadius: 11, backgroundColor: "#FFFFFF" },
+  saveCourseText: { color: colors.green600, fontSize: 10, fontWeight: "700" },
+  courseDescription: { color: "#69756D", fontSize: 10, lineHeight: 15, marginTop: -4 },
+  learningPoint: { color: "#315A43", fontSize: 10, lineHeight: 17 },
   modeSwitch: { height: 45, flexDirection: "row", padding: 4, borderRadius: 13, backgroundColor: "#ECEEEB", marginBottom: 20 },
   modeOption: { flex: 1, alignItems: "center", justifyContent: "center", borderRadius: 10 },
   modeSelected: { backgroundColor: "#FFFFFF", shadowColor: "#17231C", shadowOpacity: 0.07, shadowRadius: 4, elevation: 1 },
@@ -447,7 +499,7 @@ const styles = StyleSheet.create({
   rewayaLabel: { color: "#78817A", fontSize: 10, fontWeight: "700", marginTop: 2, marginBottom: 7 },
   rewayaChip: { maxWidth: 250, minHeight: 34, justifyContent: "center", paddingHorizontal: 11, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: "#E7E9E3", backgroundColor: "#FFFFFF" },
   surahHeading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
-  sectionTitle: { color: colors.neutral900, fontSize: 15, fontWeight: "800" },
+  sectionTitle: { color: colors.neutral900, fontSize: 13, fontWeight: "800", marginTop: 13, marginBottom: 7 },
   surahCount: { color: "#909890", fontSize: 10 },
   loader: { paddingVertical: 16 },
   surahList: { gap: 8, paddingBottom: 17 },

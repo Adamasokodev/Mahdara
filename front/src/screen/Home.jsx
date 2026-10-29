@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   ImageBackground,
   Pressable,
@@ -13,47 +14,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import colors from "../theme/colors";
 import { useAuth } from "../context/AuthContext";
-
-const categories = ["Tout", "Fiqh", "Coran", "Langue arabe", "Seerah"];
-
-const courses = [
-  {
-    id: "fiqh",
-    category: "Fiqh",
-    title: "Mukhtasar Khalil : Introduction",
-    teacher: "Cheikh Abdallah bin Bayyah",
-    duration: "12 semaines",
-    image:
-      "https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=1000&q=80",
-  },
-  {
-    id: "nahw",
-    category: "Langue arabe",
-    title: "Al-Ajurrumiyya : les bases de la grammaire",
-    teacher: "Cheikh Muhammad Al-Hasan",
-    duration: "8 semaines",
-    image:
-      "https://images.unsplash.com/photo-1516979187457-637abb4f9353?auto=format&fit=crop&w=1000&q=80",
-  },
-  {
-    id: "coran",
-    category: "Coran",
-    title: "Les bases de la récitation",
-    teacher: "Cheikhs de la Mahdara",
-    duration: "6 semaines",
-    image:
-      "https://images.unsplash.com/photo-1519682337058-a94d519337bc?auto=format&fit=crop&w=1000&q=80",
-  },
-  {
-    id: "seerah",
-    category: "Seerah",
-    title: "Vie du Prophète (PSL)",
-    teacher: "Dr Salih Al-Munajjid",
-    duration: "16 semaines",
-    image:
-      "https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=1000&q=80",
-  },
-];
+import { API_URL } from "../config/api";
+import { getCoursePlaceholder, toCatalogCourse } from "../utils/courseCatalog";
+import AppHeader from "../components/common/AppHeader";
 
 const mahdaras = [
   { name: "Mahadra de Nouakchott", location: "Nouakchott · Tevragh Zeina" },
@@ -62,9 +25,49 @@ const mahdaras = [
 ];
 
 function Home({ navigation }) {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("Tout");
+  const [courses, setCourses] = useState([]);
+  const [loadingCourses, setLoadingCourses] = useState(true);
+  const [courseError, setCourseError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    const headers = {
+      Accept: "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+
+    setLoadingCourses(true);
+    setCourseError("");
+    setCourses([]);
+    fetch(`${API_URL}/cours`, { headers })
+      .then((response) => response.ok
+        ? response.json()
+        : Promise.reject(new Error("Le serveur n’a pas pu charger les cours.")))
+      .then((data) => {
+        if (active) {
+          if (!Array.isArray(data)) {
+            throw new Error("La réponse des cours est invalide.");
+          }
+          setCourses(data.map(toCatalogCourse));
+        }
+      })
+      .catch(() => {
+        if (active) setCourseError("Les cours ne sont pas accessibles pour le moment.");
+      })
+      .finally(() => {
+        if (active) setLoadingCourses(false);
+      });
+
+    return () => { active = false; };
+  }, [token]);
+
+  const categories = useMemo(
+    () => ["Tout", ...new Set(courses.map((course) => course.category).filter(Boolean))],
+    [courses],
+  );
 
   const visibleCourses = useMemo(() => {
     const term = search.trim().toLocaleLowerCase("fr");
@@ -73,12 +76,12 @@ function Home({ navigation }) {
         category === "Tout" || course.category === category;
       const matchesSearch =
         !term ||
-        `${course.title} ${course.teacher} ${course.category}`
+        `${course.title} ${course.teacher} ${course.category} ${course.description} ${course.book} ${course.mahdara}`
           .toLocaleLowerCase("fr")
           .includes(term);
       return matchesCategory && matchesSearch;
     });
-  }, [category, search]);
+  }, [category, courses, search]);
   const visibleMahdaras = useMemo(() => {
     const term = search.trim().toLocaleLowerCase("fr");
     if (!term) return [];
@@ -88,50 +91,62 @@ function Home({ navigation }) {
   }, [search]);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="dark" />
+    <SafeAreaView edges={["left", "right", "bottom"]} style={styles.safeArea}>
+      <StatusBar style="light" />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <View style={styles.headerBrand}>
-            <View style={styles.headerAccent} />
-            <Text numberOfLines={1} style={styles.headerTitle}>Mahdara</Text>
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Notifications"
-            onPress={() =>
-              Alert.alert(
-                "Notifications",
-                "Vous êtes à jour. Les nouvelles annonces de vos cheikhs apparaîtront ici.",
-              )
-            }
-            style={({ pressed }) => [styles.notificationButton, pressed && styles.pressed]}
-          >
-            <View style={styles.bellBody} />
-            <View style={styles.bellBase} />
-            <View style={styles.bellClapper} />
-            <View style={styles.notificationDot} />
-          </Pressable>
-        </View>
+        <AppHeader
+          title="Mahdara"
+          showLogo
+          rightIcon="notifications-outline"
+          onRightPress={() => Alert.alert(
+            "Notifications",
+            "Vous êtes à jour. Les nouvelles annonces de vos cheikhs apparaîtront ici.",
+          )}
+          horizontalInset={18}
+        />
 
-        <Text style={styles.welcome}>Assalamu alaykum 👋</Text>
-        <Text style={styles.welcomeSubtitle}>Que souhaitez-vous apprendre aujourd’hui ?</Text>
+        <View style={styles.welcomeCard}>
+          <Text style={styles.welcome}>Assalamu alaykum 👋</Text>
+          <Text style={styles.welcomeSubtitle}>
+            Un foyer numérique pour apprendre et transmettre les savoirs d’Afrique de l’Ouest.
+          </Text>
+          <View style={styles.shortcutsRow}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => navigation.getParent()?.navigate("CoranDetail")}
+              style={({ pressed }) => [styles.shortcutCard, pressed && styles.pressed]}
+            >
+              <View style={styles.quranShortcutIcon}><Text style={styles.quranShortcutGlyph}>۞</Text></View>
+              <Text style={styles.quranShortcutTitle}>Lire & écouter le Coran</Text>
+              <Text style={styles.quranShortcutSubtitle}>Récitation audio</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => navigation.navigate("Bibliothèque")}
+              style={({ pressed }) => [styles.shortcutCard, pressed && styles.pressed]}
+            >
+              <View style={[styles.quranShortcutIcon, styles.libraryShortcutIcon]}><Text style={styles.quranShortcutGlyph}>▤</Text></View>
+              <Text style={styles.quranShortcutTitle}>Livres & patrimoine</Text>
+              <Text style={styles.quranShortcutSubtitle}>Bibliothèque</Text>
+            </Pressable>
+          </View>
+        </View>
 
         <Pressable
           accessibilityRole="button"
-          onPress={() => navigation.navigate("Coran")}
-          style={({ pressed }) => [styles.quranShortcut, pressed && styles.pressed]}
+          onPress={() => navigation.getParent()?.navigate("Mahadras")}
+          style={({ pressed }) => [styles.mahdaraLink, pressed && styles.pressed]}
         >
-          <View style={styles.quranShortcutIcon}><Text style={styles.quranShortcutGlyph}>۞</Text></View>
-          <View style={styles.quranShortcutCopy}>
-            <Text style={styles.quranShortcutTitle}>Lire & écouter le Coran</Text>
-            <Text style={styles.quranShortcutSubtitle}>Texte arabe · Récitation audio</Text>
+          <Text style={styles.mahdaraIcon}>⌂</Text>
+          <View style={styles.mahdaraCopy}>
+            <Text style={styles.mahdaraTitle}>Découvrir les mahadras</Text>
+            <Text style={styles.mahdaraDescription}>Cheikhs, enseignements et lieux de transmission</Text>
           </View>
-          <Text style={styles.quranShortcutArrow}>›</Text>
+          <Text style={styles.mahdaraArrow}>›</Text>
         </Pressable>
 
         <View style={styles.searchBox}>
@@ -241,42 +256,46 @@ function Home({ navigation }) {
         </ScrollView>
 
         <View style={styles.sectionHeading}>
-          <Text style={styles.sectionTitle}>Nouveaux cours</Text>
+          <Text style={styles.sectionTitle}>Cours disponibles</Text>
           <Text style={styles.sectionHint}>{visibleCourses.length} cours</Text>
         </View>
+        {loadingCourses ? <ActivityIndicator color={colors.green600} style={styles.courseLoader} /> : null}
+        {!loadingCourses && courseError ? <Text style={styles.courseStatus}>{courseError}</Text> : null}
         {visibleCourses.length ? visibleCourses.map((course) => (
           <Pressable
             key={course.id}
             accessibilityRole="button"
-            onPress={() => navigation.navigate("Cours")}
+            onPress={() => navigation.navigate("Cours", {
+              courseId: course.serverId,
+              courseSelectionKey: Date.now(),
+            })}
             style={({ pressed }) => [styles.courseCard, pressed && styles.pressed]}
           >
-            <ImageBackground source={{ uri: course.image }} style={styles.courseImage} imageStyle={styles.courseImageCorners}>
+            <ImageBackground source={{ uri: course.image || getCoursePlaceholder(course.category) }} style={styles.courseImage} imageStyle={styles.courseImageCorners}>
               <View style={styles.imageShade} />
               <Text style={styles.categoryBadge}>{course.category}</Text>
-              <View style={styles.newBadge}>
-                <Text style={styles.newBadgeText}>Nouveau</Text>
-              </View>
             </ImageBackground>
             <View style={styles.courseCopy}>
               <Text style={styles.courseTitle}>{course.title}</Text>
               <Text style={styles.teacher}>{course.teacher}</Text>
               <View style={styles.courseMetaRow}>
-                <Text style={styles.courseMeta}>◷  {course.duration}</Text>
-                <Text style={styles.levelBadge}>Débutant</Text>
+                <Text style={styles.courseMeta}>
+                  {course.duration ? `◷  ${course.duration} min` : "Durée non précisée"}
+                </Text>
+                <Text style={styles.levelBadge}>{course.level}</Text>
                 <Text style={styles.courseArrow}>↗</Text>
               </View>
             </View>
           </Pressable>
-        )) : (
+        )) : !loadingCourses && !courseError ? (
           <Text style={styles.noResults}>Aucun cours ne correspond à votre recherche.</Text>
-        )}
+        ) : null}
 
         {visibleMahdaras.length > 0 ? (
           <View style={styles.searchMahdaras}>
             <Text style={styles.searchMahdarasTitle}>Mahadras correspondantes</Text>
             {visibleMahdaras.map((item) => (
-              <Pressable key={item.name} onPress={() => navigation.navigate("Mahadra")} style={styles.searchMahdaraRow}>
+              <Pressable key={item.name} onPress={() => navigation.getParent()?.navigate("Mahadras")} style={styles.searchMahdaraRow}>
                 <Text style={styles.mahdaraIcon}>⌂</Text>
                 <View style={styles.mahdaraCopy}>
                   <Text style={styles.mahdaraTitle}>{item.name}</Text>
@@ -288,46 +307,6 @@ function Home({ navigation }) {
           </View>
         ) : null}
 
-        <View style={styles.learningHeading}>
-          <Text style={styles.sectionTitle}>Apprendre autrement</Text>
-          <Text style={styles.sectionHint}>Quiz et évaluations</Text>
-        </View>
-        <View style={styles.toolsRow}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => navigation.navigate("Quiz")}
-            style={({ pressed }) => [styles.toolCard, styles.quizCard, pressed && styles.pressed]}
-          >
-            <View style={styles.toolIconBubble}><Text style={styles.toolIcon}>✎</Text></View>
-            <Text style={styles.toolTitle}>Quiz</Text>
-            <Text style={styles.toolDescription}>Testez vos connaissances</Text>
-            <Text style={styles.toolLink}>Faire un quiz  →</Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => navigation.navigate("Quiz", { screen: "evaluations" })}
-            style={({ pressed }) => [styles.toolCard, styles.evaluationCard, pressed && styles.pressed]}
-          >
-            <View style={styles.toolIconBubble}><Text style={styles.toolIcon}>✓</Text></View>
-            <Text style={styles.toolTitle}>Évaluations</Text>
-            <Text style={styles.toolDescription}>Suivez vos acquis</Text>
-            <Text style={styles.toolLink}>Voir mon bilan  →</Text>
-          </Pressable>
-        </View>
-
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => navigation.navigate("Mahadra")}
-          style={styles.mahdaraLink}
-        >
-          <Text style={styles.mahdaraIcon}>⌂</Text>
-          <View style={styles.mahdaraCopy}>
-            <Text style={styles.mahdaraTitle}>Découvrir les mahadras</Text>
-            <Text style={styles.mahdaraDescription}>Cheikhs, enseignements et lieux de transmission</Text>
-          </View>
-          <Text style={styles.mahdaraArrow}>›</Text>
-        </Pressable>
-
         <Text style={styles.footer}>MAHDARA · SAVOIR & TRANSMISSION</Text>
       </ScrollView>
     </SafeAreaView>
@@ -336,25 +315,18 @@ function Home({ navigation }) {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.neutral50 },
-  scrollContent: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 26 },
-  header: { height: 68, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 17, marginHorizontal: -18, marginTop: -8, marginBottom: 21, backgroundColor: "#FFFFFF", borderBottomWidth: 1, borderBottomColor: "#E9E9E3", shadowColor: "#173C2C", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.045, shadowRadius: 9, elevation: 2 },
-  headerBrand: { flex: 1, flexDirection: "row", alignItems: "center" },
-  headerAccent: { width: 4, height: 31, borderRadius: 2, backgroundColor: colors.green600, marginRight: 12 },
-  headerTitle: { flex: 1, color: colors.neutral900, fontSize: 25, fontFamily: "Georgia", fontWeight: "700", letterSpacing: -0.55 },
-  notificationButton: { width: 46, height: 46, borderRadius: 16, backgroundColor: "#F7F9F6", borderWidth: 1, borderColor: "#E7EBE6", alignItems: "center", justifyContent: "center", marginLeft: 12 },
-  bellBody: { width: 15, height: 15, borderWidth: 1.8, borderBottomWidth: 0, borderColor: "#355344", borderTopLeftRadius: 9, borderTopRightRadius: 9, marginTop: 3 },
-  bellBase: { width: 20, height: 5, borderTopWidth: 1.8, borderColor: "#355344", borderBottomLeftRadius: 4, borderBottomRightRadius: 4 },
-  bellClapper: { position: "absolute", bottom: 12, width: 4, height: 4, borderRadius: 2, backgroundColor: "#355344" },
-  notificationDot: { position: "absolute", right: 9, top: 8, width: 9, height: 9, borderRadius: 5, backgroundColor: colors.gold400, borderWidth: 1.5, borderColor: "#F7F9F6" },
-  welcome: { color: colors.neutral900, fontSize: 24, fontWeight: "800", fontFamily: "Georgia" },
-  welcomeSubtitle: { color: "#78827B", fontSize: 13, marginTop: 5, marginBottom: 17 },
-  quranShortcut: { minHeight: 68, flexDirection: "row", alignItems: "center", paddingHorizontal: 12, borderRadius: 15, backgroundColor: "#EDF4EE", borderWidth: 1, borderColor: "#DEE9E0", marginBottom: 17 },
-  quranShortcutIcon: { width: 42, height: 42, alignItems: "center", justifyContent: "center", borderRadius: 13, backgroundColor: "#FFFFFF", marginRight: 11 },
+  scrollContent: { paddingHorizontal: 18, paddingTop: 0, paddingBottom: 26 },
+  welcomeCard: { padding: 13, marginTop: -20, borderRadius: 17, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#ECEAE2", marginBottom: 13 },
+  welcome: { color: "#25362D", fontSize: 19, fontWeight: "800", fontFamily: "Georgia" },
+  welcomeSubtitle: { color: "#78827B", fontSize: 10, lineHeight: 15, marginTop: 4, marginBottom: 11 },
+  shortcutsRow: { flexDirection: "row", gap: 8 },
+  shortcutCard: { flex: 1, minHeight: 83, padding: 9, borderRadius: 12, backgroundColor: "#E8F0E9", borderWidth: 1, borderColor: "#DCE8DF" },
+  quranShortcutIcon: { width: 29, height: 29, alignItems: "center", justifyContent: "center", borderRadius: 9, backgroundColor: "#FFFFFF", marginBottom: 5 },
+  libraryShortcutIcon: { backgroundColor: "#F5F0E4" },
   quranShortcutGlyph: { color: colors.green600, fontSize: 23 },
   quranShortcutCopy: { flex: 1 },
-  quranShortcutTitle: { color: colors.neutral900, fontSize: 13, fontWeight: "800" },
-  quranShortcutSubtitle: { color: "#77847B", fontSize: 10, marginTop: 4 },
-  quranShortcutArrow: { color: colors.green600, fontSize: 24, marginLeft: 6 },
+  quranShortcutTitle: { color: colors.neutral900, fontSize: 9, fontWeight: "800" },
+  quranShortcutSubtitle: { color: "#77847B", fontSize: 8, marginTop: 3 },
   searchBox: { height: 48, flexDirection: "row", alignItems: "center", paddingHorizontal: 13, borderRadius: 13, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E9E8E1", marginBottom: 22 },
   searchIcon: { color: "#758078", fontSize: 24, marginRight: 8 },
   searchInput: { flex: 1, color: "#26342C", fontSize: 13, paddingVertical: 0 },
@@ -362,7 +334,7 @@ const styles = StyleSheet.create({
   sectionHeading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 11 },
   sectionTitle: { color: colors.neutral900, fontSize: 17, fontWeight: "800" },
   sectionHint: { color: "#8A928B", fontSize: 11 },
-  resumeCard: { padding: 14, borderRadius: 17, backgroundColor: "#174838", marginBottom: 22 },
+  resumeCard: { padding: 14, borderRadius: 17, backgroundColor: "#0B5D46", marginBottom: 22 },
   resumeTop: { flexDirection: "row", alignItems: "center" },
   resumeBook: { width: 45, height: 45, borderRadius: 13, backgroundColor: "#2D6652", alignItems: "center", justifyContent: "center" },
   resumeBookIcon: { color: "#F0DCA1", fontSize: 25 },
@@ -382,41 +354,33 @@ const styles = StyleSheet.create({
   chipSelected: { backgroundColor: colors.green600, borderColor: colors.green600 },
   chipText: { color: "#6E7870", fontSize: 11, fontWeight: "600" },
   chipTextSelected: { color: "#FFFFFF" },
-  courseCard: { overflow: "hidden", borderRadius: 16, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E8E7E0", marginBottom: 13 },
+  courseCard: { flexDirection: "row", alignItems: "center", padding: 7, borderRadius: 14, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E8E7E0", marginBottom: 8 },
+  courseLoader: { marginVertical: 18 },
+  courseStatus: { color: "#A6352C", fontSize: 11, textAlign: "center", padding: 12 },
   pressed: { opacity: 0.88 },
-  courseImage: { height: 145, justifyContent: "flex-end", backgroundColor: "#B9AD98" },
-  courseImageCorners: { borderTopLeftRadius: 15, borderTopRightRadius: 15 },
+  courseImage: { width: 72, height: 66, justifyContent: "flex-end", overflow: "hidden", borderRadius: 10, backgroundColor: "#B9AD98" },
+  courseImageCorners: { borderRadius: 10 },
   imageShade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(18, 28, 21, 0.25)" },
-  categoryBadge: { alignSelf: "flex-start", overflow: "hidden", margin: 11, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, color: "#FFFFFF", backgroundColor: colors.green600, fontSize: 11, fontWeight: "800" },
-  newBadge: { position: "absolute", top: 11, right: 11, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 8, backgroundColor: colors.gold50 },
-  newBadgeText: { color: colors.gold400, fontSize: 10, fontWeight: "800" },
-  courseCopy: { paddingHorizontal: 13, paddingTop: 11, paddingBottom: 12 },
-  courseTitle: { color: colors.neutral900, fontFamily: "Georgia", fontSize: 17, lineHeight: 23, fontWeight: "700" },
-  teacher: { color: "#69746D", fontSize: 12, marginTop: 4 },
-  courseMetaRow: { flexDirection: "row", alignItems: "center", marginTop: 10 },
-  courseMeta: { color: "#69746D", fontSize: 11 },
+  categoryBadge: { alignSelf: "flex-start", overflow: "hidden", margin: 5, paddingHorizontal: 5, paddingVertical: 3, borderRadius: 6, color: "#FFFFFF", backgroundColor: colors.green600, fontSize: 7, fontWeight: "800" },
+  newBadge: { position: "absolute", top: 4, right: 4, paddingHorizontal: 4, paddingVertical: 3, borderRadius: 6, backgroundColor: colors.gold50 },
+  newBadgeText: { color: colors.gold400, fontSize: 7, fontWeight: "800" },
+  courseCopy: { flex: 1, paddingHorizontal: 9, paddingVertical: 3 },
+  courseTitle: { color: colors.neutral900, fontFamily: "Georgia", fontSize: 11, lineHeight: 15, fontWeight: "700" },
+  teacher: { color: "#69746D", fontSize: 9, marginTop: 3 },
+  courseMetaRow: { flexDirection: "row", alignItems: "center", marginTop: 5 },
+  courseMeta: { color: "#69746D", fontSize: 8 },
   levelBadge: { overflow: "hidden", color: "#B57B4A", backgroundColor: "#F9EFE5", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4, fontSize: 10, marginLeft: "auto" },
-  courseArrow: { color: "#FFFFFF", backgroundColor: "#174838", overflow: "hidden", textAlign: "center", textAlignVertical: "center", width: 28, height: 28, borderRadius: 15, fontSize: 16, marginLeft: 9 },
+  courseArrow: { color: "#FFFFFF", backgroundColor: "#174838", overflow: "hidden", textAlign: "center", textAlignVertical: "center", width: 22, height: 22, borderRadius: 11, fontSize: 13, marginLeft: 6 },
   noResults: { color: "#768178", textAlign: "center", padding: 18 },
   searchMahdaras: { marginTop: 2, marginBottom: 15 },
   searchMahdarasTitle: { color: "#203B2F", fontSize: 14, fontWeight: "800", marginBottom: 8 },
   searchMahdaraRow: { minHeight: 56, flexDirection: "row", alignItems: "center", paddingHorizontal: 12, borderRadius: 12, backgroundColor: "#FFFFFF", marginBottom: 7 },
-  learningHeading: { marginTop: 8, marginBottom: 11 },
-  toolsRow: { flexDirection: "row", gap: 11 },
-  toolCard: { flex: 1, minHeight: 150, padding: 13, borderRadius: 16, borderWidth: 1 },
-  quizCard: { backgroundColor: "#EDF2FF", borderColor: "#DAE4FA" },
-  evaluationCard: { backgroundColor: "#F8F0E5", borderColor: "#EEE1CE" },
-  toolIconBubble: { width: 33, height: 33, borderRadius: 11, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", marginBottom: 8 },
-  toolIcon: { color: "#4F70B6", fontSize: 19, fontWeight: "700" },
-  toolTitle: { color: "#263D34", fontSize: 14, fontWeight: "800" },
-  toolDescription: { color: "#748078", fontSize: 10, marginTop: 4 },
-  toolLink: { color: colors.green600, fontSize: 10, fontWeight: "800", marginTop: 10 },
-  mahdaraLink: { minHeight: 72, flexDirection: "row", alignItems: "center", paddingHorizontal: 14, marginTop: 17, borderRadius: 15, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E9E8E1" },
-  mahdaraIcon: { color: "#B48750", fontSize: 25, marginRight: 12 },
+  mahdaraLink: { minHeight: 55, flexDirection: "row", alignItems: "center", paddingHorizontal: 12, marginTop: 0, marginBottom: 12, borderRadius: 13, backgroundColor: "#E8F0E9", borderWidth: 1, borderColor: "#DCE8DF" },
+  mahdaraIcon: { color: "#B48750", fontSize: 23, marginRight: 10 },
   mahdaraCopy: { flex: 1 },
-  mahdaraTitle: { color: "#244333", fontSize: 13, fontWeight: "800" },
-  mahdaraDescription: { color: "#7A847D", fontSize: 10, marginTop: 4 },
-  mahdaraArrow: { color: "#54806A", fontSize: 24, marginLeft: 7 },
+  mahdaraTitle: { color: "#244333", fontSize: 11, fontWeight: "800" },
+  mahdaraDescription: { color: "#7A847D", fontSize: 9, marginTop: 3 },
+  mahdaraArrow: { color: "#54806A", fontSize: 22, marginLeft: 7 },
   footer: { color: "#9A9D94", textAlign: "center", fontSize: 9, fontWeight: "700", letterSpacing: 1, marginTop: 22 },
 });
 

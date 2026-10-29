@@ -1,10 +1,10 @@
 const colors = {
-  green600: "#16A34A",
-  green400: "#4ADE80",
-  gold400: "#FBBF24",
-  gold50: "#FFFBEB",
-  neutral50: "#FAFAF9",
-  neutral900: "#171717",
+  green600: "#087253",
+  green400: "#6EB294",
+  gold400: "#C99B45",
+  gold50: "#FBF5E8",
+  neutral50: "#F7F6F1",
+  neutral900: "#202B25",
 };
 
 export default colors;
