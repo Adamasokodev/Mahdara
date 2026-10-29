@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Cheikh;
 use App\Models\Cours;
 use App\Models\Matiere;
+use App\Models\PartieCours;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,6 +25,7 @@ class CoursController extends Controller
                 'cheikh.user:id,name,prenom',
                 'mahdara:id,nom,wilaya',
             ])
+            ->withCount('parties')
             ->orderBy('id');
 
         if (in_array($user?->role, [User::ROLE_CHEIKH, User::ROLE_ASSISTANT], true)) {
@@ -37,9 +39,7 @@ class CoursController extends Controller
                 $query->whereRaw('1 = 0');
             }
         } elseif ($user?->role !== User::ROLE_ADMIN || $user->status !== 'active') {
-            $query->where('statut', 'publie')
-                ->whereNotNull('publie_le')
-                ->where('publie_le', '<=', now());
+            $query->where('statut', 'publie');
         }
 
         return response()->json($query->get()->map(
@@ -58,19 +58,103 @@ class CoursController extends Controller
         ));
     }
 
+    public function parts(Cours $cours)
+    {
+        $user = Auth::guard('sanctum')->user();
+        $this->authorizeCourseVisibility($user, $cours);
+        $hasContentAccess = $user
+            && in_array($user->role, [User::ROLE_STUDENT, User::ROLE_ADMIN, User::ROLE_CHEIKH, User::ROLE_ASSISTANT], true)
+            && $user->status === 'active';
+
+        return response()->json($cours->parties()->get()->map(fn ($partie): array => [
+            'id' => $partie->id,
+            'cours_id' => $partie->cours_id,
+            'ordre' => $partie->ordre,
+            'titre' => $partie->titre,
+            'contenu' => $hasContentAccess ? $partie->contenu : null,
+            'duree_secondes' => $partie->duree_secondes,
+            'audio_url' => $hasContentAccess
+                ? ($partie->fichier_path ? $this->publicMediaUrl($partie->fichier_path) : $partie->source_url)
+                : null,
+        ]));
+    }
+
+    public function trackPartListen(Request $request, Cours $cours, PartieCours $partie)
+    {
+        $user = $request->user();
+        abort_unless($user && $user->status === 'active', 403);
+        $this->authorizeCourseVisibility($user, $cours);
+        abort_unless((int) $partie->cours_id === (int) $cours->id, 404);
+
+        $cours->increment('nombre_ecoutes');
+
+        return response()->json(['nombre_ecoutes' => $cours->fresh()->nombre_ecoutes]);
+    }
+
+    public function downloadPart(Request $request, Cours $cours, PartieCours $partie)
+    {
+        $user = $request->user();
+        abort_unless($user && $user->status === 'active', 403);
+        $this->authorizeCourseVisibility($user, $cours);
+        abort_unless((int) $partie->cours_id === (int) $cours->id, 404);
+
+        $url = $partie->fichier_path
+            ? $this->publicMediaUrl($partie->fichier_path).'?download=1'
+            : $partie->source_url;
+        abort_unless($url, 404);
+        if ($partie->fichier_path) {
+            abort_unless(Storage::disk('public')->exists($partie->fichier_path), 404);
+        }
+
+        $cours->increment('telechargements');
+
+        return response()->json([
+            'url' => $url,
+            'telechargements' => $cours->fresh()->telechargements,
+        ]);
+    }
+
+    public function trackListen(Request $request, Cours $cours)
+    {
+        $user = $request->user();
+        abort_unless($user && $user->status === 'active', 403);
+        $this->authorizeCourseVisibility($user, $cours);
+
+        $cours->increment('nombre_ecoutes');
+
+        return response()->json(['nombre_ecoutes' => $cours->fresh()->nombre_ecoutes]);
+    }
+
+    public function download(Request $request, Cours $cours)
+    {
+        $user = $request->user();
+        abort_unless($user && $user->status === 'active', 403);
+        $this->authorizeCourseVisibility($user, $cours);
+        abort_unless($cours->fichier_path && ! Str::startsWith($cours->fichier_path, ['http://', 'https://']), 404);
+        abort_unless(Storage::disk('public')->exists($cours->fichier_path), 404);
+
+        $cours->increment('telechargements');
+
+        return response()->json([
+            'url' => $this->publicMediaUrl($cours->fichier_path).'?download=1',
+            'telechargements' => $cours->fresh()->telechargements,
+        ]);
+    }
+
     public function store(Request $request)
     {
         $cheikh = $this->managedCheikh($request->user());
         $this->mapLegacyFields($request);
         $validated = $request->validate($this->courseRules());
         $this->validateCourseAssignment($cheikh, $validated);
+        $status = $validated['statut'] ?? 'publie';
 
         $course = Cours::create([
             ...$validated,
             'cheikh_id' => $cheikh->id,
             'mahdara_id' => $cheikh->mahdara_id,
-            'statut' => $validated['statut'] ?? 'brouillon',
-            'publie_le' => ($validated['statut'] ?? 'brouillon') === 'publie' ? now() : null,
+            'statut' => $status,
+            'publie_le' => $status === 'publie' ? now() : null,
         ]);
 
         return response()->json([
@@ -86,7 +170,7 @@ class CoursController extends Controller
     {
         $this->managedCheikh($request->user());
         $validated = $request->validate([
-            'audio' => 'required|file|mimetypes:audio/mpeg,audio/mp3,audio/mp4,audio/x-m4a,audio/webm,audio/ogg,audio/wav|max:102400',
+            'audio' => 'required|file|mimes:m4a,mp3,mpga,mp4,3gp,webm,ogg,wav,aac|max:102400',
         ]);
 
         $path = $validated['audio']->store('cours/audio', 'public');
@@ -242,27 +326,27 @@ class CoursController extends Controller
         }
 
         abort_unless(
-            $cours->statut === 'publie' && $cours->publie_le && $cours->publie_le->isPast(),
+            $cours->statut === 'publie',
             404,
         );
     }
 
     private function courseData(Cours $cours, ?User $user): array
     {
-        $hasContentAccess = ($cours->statut === 'publie' && $cours->publie_le && $cours->publie_le->isPast()) || ($user
+        $hasContentAccess = $user
             && in_array($user->role, [
                 User::ROLE_STUDENT,
                 User::ROLE_ADMIN,
                 User::ROLE_CHEIKH,
                 User::ROLE_ASSISTANT,
             ], true)
-            && $user->status === 'active');
+            && $user->status === 'active';
         $filePath = $cours->fichier_path;
         $fileUrl = $filePath && Str::startsWith($filePath, ['http://', 'https://'])
             ? $filePath
-            : ($filePath ? Storage::disk('public')->url($filePath) : null);
+            : ($filePath ? $this->publicMediaUrl($filePath) : null);
         $excerptUrl = $cours->extrait_path
-            ? Storage::disk('public')->url($cours->extrait_path)
+            ? $this->publicMediaUrl($cours->extrait_path)
             : $cours->extrait_url;
 
         return [
@@ -284,7 +368,7 @@ class CoursController extends Controller
             'duree_secondes' => $cours->duree_secondes,
             'taille_octets' => $cours->taille_octets,
             'image_path' => $cours->image_path,
-            'image_url' => $cours->image_path ? Storage::disk('public')->url($cours->image_path) : null,
+            'image_url' => $cours->image_path ? $this->publicMediaUrl($cours->image_path) : null,
             'statut' => $cours->statut,
             'nombre_ecoutes' => $cours->nombre_ecoutes,
             'telechargements' => $cours->telechargements,
@@ -295,6 +379,12 @@ class CoursController extends Controller
             'extrait_path' => $cours->extrait_path,
             'extrait_url' => $excerptUrl,
             'duree_minutes' => $cours->duree_minutes ?? ($cours->duree_secondes ? (int) ceil($cours->duree_secondes / 60) : null),
+            'parties_count' => $cours->parties_count ?? $cours->parties()->count(),
         ];
+    }
+
+    private function publicMediaUrl(string $path): string
+    {
+        return url('/media/'.ltrim($path, '/'));
     }
 }

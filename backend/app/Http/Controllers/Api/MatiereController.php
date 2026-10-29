@@ -22,6 +22,18 @@ class MatiereController extends Controller
             $query->whereIn('actif', ['true', '1']);
         }
 
+        if (in_array($user?->role, [User::ROLE_CHEIKH, User::ROLE_ASSISTANT], true)) {
+            $cheikh = $user->status === 'active'
+                ? ($user->role === User::ROLE_CHEIKH ? $user->cheikh : $user->assistantCheikh)
+                : null;
+
+            if ($cheikh) {
+                $query->whereHas('cheikhs', fn ($cheikhs) => $cheikhs->whereKey($cheikh->id));
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+
         return response()->json($query->get());
     }
 

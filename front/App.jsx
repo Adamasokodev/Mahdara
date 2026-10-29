@@ -9,6 +9,8 @@ import Login from "./src/auth/Login";
 import Register from "./src/auth/Register";
 import Welcome from "./src/auth/Welcome";
 import Cours from "./src/screen/Cours";
+import CoursDetail from "./src/screen/CoursDetail";
+import Bibliotheque from "./src/screen/Bibliotheque";
 import Coran from "./src/screen/Coran";
 import Bibliotheque from "./src/screen/Bibliotheque";
 import Home from "./src/screen/Home";
@@ -21,11 +23,21 @@ const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 const icons = {
+<<<<<<< HEAD
   Accueil: { active: "home", inactive: "home-outline" },
   Cours: { active: "book", inactive: "book-outline" },
   Bibliothèque: { active: "library", inactive: "library-outline" },
   Quiz: { active: "checkmark-circle", inactive: "checkmark-circle-outline" },
   Profil: { active: "person", inactive: "person-outline" },
+=======
+  Bibliothèque: "▤",
+  Accueil: "⌂",
+  Cours: "▤",
+  Coran: "۞",
+  Quiz: "✎",
+  Mahadra: "◉",
+  Profil: "♙",
+>>>>>>> ca668bae1f09baef64fbc648ec3e40ecbcdb768b
 };
 
 function AppTabs() {
@@ -60,7 +72,12 @@ function AppTabs() {
     >
       <Tab.Screen name="Accueil" component={Home} />
       <Tab.Screen name="Cours" component={Cours} />
+<<<<<<< HEAD
       <Tab.Screen name="Bibliothèque" component={Bibliotheque} />
+=======
+      <Tab.Screen name="Bibliothèque" component={Bibliotheque} options={{ tabBarLabel: "Biblio" }} />
+      <Tab.Screen name="Coran" component={Coran} />
+>>>>>>> ca668bae1f09baef64fbc648ec3e40ecbcdb768b
       <Tab.Screen name="Quiz" component={Quiz} />
       <Tab.Screen name="Profil" component={Profil} />
     </Tab.Navigator>
@@ -86,6 +103,7 @@ function RootNavigator() {
       <Stack.Screen name="Mahadras" component={Mahadra} />
       <Stack.Screen name="Login" component={Login} />
       <Stack.Screen name="Register" component={Register} />
+      <Stack.Screen name="CourseDetail" component={CoursDetail} options={{ animation: "slide_from_right" }} />
     </Stack.Navigator>
   );
 }

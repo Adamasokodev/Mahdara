@@ -314,7 +314,7 @@ function Profil({ navigation }) {
         </View>
 
         <Text style={styles.footer}>
-          MAHDARA · SAVOIR ISLAMIQUE ET ENSEIGNEMENT TRADITIONNEL
+          MAHDARA · SAVOIR & TRANSMISSION
         </Text>
 
         {token ? (
