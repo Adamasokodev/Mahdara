@@ -1,9 +1,9 @@
 import React from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import Svg, { Path } from "react-native-svg";
 import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Path } from "react-native-svg";
 import colors from "../../theme/colors";
 
 const LOGO = require("../../../assets/img/logo_mahdara.jpg");
@@ -27,8 +27,8 @@ function AppHeader({
 }) {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const headerHeight = insets.top + 58;
-  const curveEdge = headerHeight - 20;
+  const totalHeight = 58 + insets.top;
+  const curveEdge = totalHeight - 14;
 
   const handleBackPress = () => {
     if (onBackPress) {
@@ -43,25 +43,26 @@ function AppHeader({
       style={[
         styles.container,
         {
-          height: headerHeight,
+          height: totalHeight,
           marginHorizontal: -horizontalInset,
+          paddingTop: insets.top,
         },
       ]}
     >
       <Svg
         width="100%"
-        height={headerHeight}
-        viewBox={`0 0 400 ${headerHeight}`}
+        height={totalHeight}
+        viewBox={`0 0 400 ${totalHeight}`}
         preserveAspectRatio="none"
         pointerEvents="none"
         style={StyleSheet.absoluteFill}
       >
         <Path
-          d={`M0 ${curveEdge} Q200 ${headerHeight + 20} 400 ${curveEdge} V${headerHeight} H0 Z`}
+          d={`M0 ${curveEdge} Q200 ${totalHeight + 4} 400 ${curveEdge} V${totalHeight} H0 Z`}
           fill={colors.neutral50}
         />
       </Svg>
-      <View style={[styles.row, { top: insets.top }]}>
+      <View style={styles.row}>
         {showBack ? (
           <Pressable
             accessibilityLabel="Retour"
@@ -107,17 +108,16 @@ const styles = StyleSheet.create({
   container: {
     alignSelf: "stretch",
     backgroundColor: "#064C3B",
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
+    overflow: "hidden",
     position: "relative",
   },
   row: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    height: 58,
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 20,
-    zIndex: 1,
   },
   backButton: {
     width: 24,
